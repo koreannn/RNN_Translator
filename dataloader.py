@@ -1,15 +1,6 @@
-"""
-한국어 -> 영어 번역기
-"""
 import pandas as pd
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader, random_split
-from torch.optim import SGD
-from transformers import AutoTokenizer
-from loguru import logger
-
 
 class CustomDataLoader:
     class _TranslateDataset(Dataset):
@@ -23,10 +14,13 @@ class CustomDataLoader:
             tgt = str(self.tgt_series.iloc[idx]).strip()
             return src, tgt
         
-    def __init__(self, data, max_length = 50, batch_size = 32):
+    def __init__(self, data, 
+                kor_tokenizer, en_tokenizer,
+                max_length = 50, batch_size = 32,
+            ):
         self.data = data
-        self.kor_tokenizer = AutoTokenizer.from_pretrained("klue/bert-base")
-        self.en_tokenizer = AutoTokenizer.from_pretrained("google-bert/bert-base-uncased")
+        self.kor_tokenizer = kor_tokenizer
+        self.en_tokenizer = en_tokenizer
         self.en_vocab_size = self.en_tokenizer.vocab_size
         self.kor_vocab_size = self.kor_tokenizer.vocab_size # 30522, 32000
         self.kor_data = self.data["원문"]
@@ -38,6 +32,7 @@ class CustomDataLoader:
         self.seed = 123
         self.batch_size = batch_size
         self.max_length = max_length
+        self.sos_token = self.en_tokenizer
     
     def _build_dataset(self):
         src = self.kor_data
@@ -74,7 +69,6 @@ class CustomDataLoader:
 
     def build_data_split(self):
         dataset = self._build_dataset()
-        n = len(dataset)
         
         train_size = int(len(dataset) * self.train_ratio)
         valid_size = int(len(dataset) * self.valid_ratio)
@@ -110,7 +104,7 @@ class CustomDataLoader:
         )
         test_loader = DataLoader(
             test_dataset,
-            batch_size = self.batch_size,
+            batch_size = 1,
             shuffle = False,
             num_workers = 0,
             collate_fn = self._collate_fn,
