@@ -33,7 +33,6 @@ if __name__ == "__main__":
     decoder = Decoder(vocab_size = en_tokenizer.vocab_size, embedding_dim = embedding_dim, hidden_dim = hidden_dim).to(device)
     seq2seq = Seq2Seq(encoder, decoder).to(device)
     
-    breakpoint()
     trainer = Trainer(
         epochs = epochs,
         embedding_dim = embedding_dim,
@@ -46,12 +45,3 @@ if __name__ == "__main__":
         device = device
     )
     trainer.train()
-    # inference(
-    #     seq2seq,
-    #     kor_tokenizer,
-    #     en_tokenizer,
-    #     device,
-    #     test_dataloader,
-    #     max_length,
-    #     max_new_tokens = 50
-    # )

@@ -57,7 +57,7 @@ def inference( # greedy방식으로 하나씩 추론
             
             for _ in range(max_new_tokens):
                 logits, dec_hidden = model.decoder(dec_input, dec_hidden)
-                next_token_logits = logits[:, -1] # (bs(1), vocab_size)
+                next_token_logits = logits[:, -1, :] # 배치 내 모든 hidden 중 마지막 hidden / (bs(1), vocab_size)
                 next_id = int(torch.argmax(next_token_logits, dim = -1).item())
                 
                 generated_ids.append(next_id)
