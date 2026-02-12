@@ -7,70 +7,12 @@ RNN 구조를 기반으로 시작해서 Seq2Seq with Attention, Transformer 기�
 ### 아키텍쳐
 
 ```mermaid
-flowchart TB
+flowchart LR
 
-  subgraph Artifacts
-    CFG[config yaml and arguments]
-    DATA[kor2en dataset csv or xlsx]
-    CKPT[checkpoints directory model pt files]
-  end
-
-  subgraph Entry
-    MAIN[main py training entry]
-    INF[inference py entry]
-    APP[app py demo entry]
-  end
-
-  subgraph Tokenization_and_Data
-    HF[HuggingFace AutoTokenizer load every run]
-    DL[dataloader load split encode and create batches]
-  end
-
-  subgraph Model
-    S2S[Seq2Seq RNN model]
-    ENC[Encoder Embedding then RNN]
-    DEC[Decoder Embedding RNN Linear]
-  end
-
-  subgraph Training
-    TR[trainer loop teacher forcing]
-    LOSS[CrossEntropy loss]
-    OPT[Optimizer Adam]
-  end
-
-  subgraph Inference
-    GREEDY[Greedy decoding argmax loop]
-    OUT[Translated text output]
-  end
-
-  CFG --> MAIN
-  CFG --> INF
-  CFG --> APP
-
-  DATA --> DL
-  HF --> DL
-  CFG --> HF
-
-  MAIN --> TR
-  DL --> TR
-  TR --> S2S
-  S2S --> ENC
-  S2S --> DEC
-  TR --> LOSS
-  TR --> OPT
-  TR --> CKPT
-
-  INF --> HF
-  INF --> CKPT
-  INF --> S2S
-  HF --> GREEDY
-  S2S --> GREEDY
-  GREEDY --> OUT
-
-  APP --> HF
-  APP --> CKPT
-  APP --> S2S
-  APP --> GREEDY
+  DATA[Dataset + HF Tokenizer] --> TRAIN[Train<br>Seq2Seq RNN + Teacher Forcing]
+  TRAIN --> CKPT[Save Checkpoint]
+  CKPT --> INFER[Infer<br>Greedy Decoding]
+  INFER --> OUT[Translated Text]
 ```
 
 
