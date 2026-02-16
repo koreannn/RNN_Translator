@@ -1,6 +1,7 @@
 import pandas as pd
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
+from utils import load_config
 
 class CustomDataLoader:
     class _TranslateDataset(Dataset):
@@ -16,8 +17,9 @@ class CustomDataLoader:
         
     def __init__(self, data, 
                 kor_tokenizer, en_tokenizer,
-                max_length = 50, batch_size = 32,
+                max_length, batch_size,
             ):
+        self.config = load_config("config.yaml")
         self.data = data
         self.kor_tokenizer = kor_tokenizer
         self.en_tokenizer = en_tokenizer
@@ -27,8 +29,8 @@ class CustomDataLoader:
         self.en_data = self.data["번역문"]
         self.kor_pad_token_id = self.kor_tokenizer.pad_token_id
         self.en_pad_token_id = self.en_tokenizer.pad_token_id
-        self.train_ratio = 0.8
-        self.valid_ratio = 0.16
+        self.train_ratio = self.config["data"]["train_size"]
+        self.valid_ratio = self.config["data"]["valid_size"]
         self.seed = 123
         self.batch_size = batch_size
         self.max_length = max_length
@@ -52,10 +54,10 @@ class CustomDataLoader:
         )
         tgt_enc = self.en_tokenizer(
             tgt_text,
-            padding="longest",
-            truncation=True,
-            max_length=self.max_length,
-            return_tensors="pt",
+            padding = "longest",
+            truncation = True,
+            max_length = self.max_length,
+            return_tensors = "pt",
         )
 
         src_ids = src_enc["input_ids"].to(torch.long)

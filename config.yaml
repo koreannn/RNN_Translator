@@ -1,0 +1,22 @@
+data:
+  data_path: "./kor2en.csv"
+  train_size: 0.8
+  valid_size: 0.16
+  learning_rate: 1e-3
+  optimizer: adam
+  
+
+train:
+  h_param:
+    epochs: 10
+    embedding_dim: 512
+    hidden_dim: 512
+    batch_size: 32
+    max_length: 50
+
+inference:
+
+
+model:
+  kor_tokenizer: "klue/bert-base"
+  en_tokenizer: "google-bert/bert-base-uncased"
