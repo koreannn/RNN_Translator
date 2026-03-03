@@ -10,10 +10,11 @@ from dataloader import CustomDataLoader
 
 class Trainer:
     def __init__(
-        self, epochs, embedding_dim, hidden_dim, 
-        train_dataloader, valid_dataloader, 
-        encoder_model, decoder_model, seq2seq_model, 
-        device, checkpoint_dir = "checkpoints"):
+            self, epochs, embedding_dim, hidden_dim, 
+            train_dataloader, valid_dataloader, 
+            encoder_model, decoder_model, seq2seq_model, 
+            device, checkpoint_dir = "checkpoints"
+        ):
         self.epochs = epochs
         self.train_loader = train_dataloader
         self.valid_loader = valid_dataloader
@@ -45,17 +46,18 @@ class Trainer:
         }
     
     def save_checkpoint(self, epoch, train_loss, valid_loss):
-        last_path = self.checkpoint_dir / "last.pt" # 마지막 체크포인트
+        self.checkpoint_dir.mkdir(parents = True, exist_ok = True)
+        
+        # 매 에포크마다 last.pt 덮어쓰기(마지막 체크포인트만 남기기)
+        last_path = self.checkpoint_dir / "last.pt"
         torch.save(self._checkpoint_payload(epoch, train_loss, valid_loss), last_path)
         
-        epoch_path = self.checkpoint_dir / f"epoch_{epoch:03d}.pt"
-        torch.save(self._checkpoint_payload(epoch, train_loss, valid_loss), epoch_path)
-        
+        # valid loss 개선 시 best모델 갱신
         if valid_loss < self.best_valid_loss:
             self.best_valid_loss = valid_loss
             best_path = self.checkpoint_dir / "best.pt"
             torch.save(self._checkpoint_payload(epoch, train_loss, valid_loss), best_path)
-            logger.info(f"Best updated in epoch {epoch}.")
+            logger.info(f"Best updated in epoch {epoch + 1}.")
     
     def train(self):
         for epoch in range(self.epochs):
@@ -103,5 +105,5 @@ class Trainer:
             
             valid_avg_loss = valid_loss_sum / max(1, valid_steps)
             
-            logger.info(f"epoch={epoch} train_loss={train_avg_loss:.4f} valid_loss={valid_avg_loss:.4f}")
+            logger.info(f"epoch = {epoch + 1} train_loss = {train_avg_loss:.4f} valid_loss = {valid_avg_loss:.4f}")
             self.save_checkpoint(epoch = epoch, train_loss = train_avg_loss, valid_loss = valid_avg_loss)
