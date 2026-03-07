@@ -17,7 +17,7 @@
 
 **2. 평가 지표 구축**
 
-**문제**: 기본적인 Loss값이 존재하긴 하지만, NLP에서는 Loss값이 작다는 것이 곧 Task를 잘 푼다는것을 의미하지는 않습니다. 따라서 Loss가 아닌 특정 Task(현재는 Machine Translation Task)에 적합한 평가 지표를 구축하고, 이를 기반으로 고도화가 진행되어야 합니다.
+**문제**: 기본적인 Loss값이 존재하긴 하지만, NLP에서는 Loss값이 작다는 것이 곧 Task를 잘 푼다는것을 의미하지는 않습니다. 따라서 Loss가 아닌 특정 Task(현재는 Machine Translation Task)에 적합한 평가 지표를 구축하고, 이를 기반으로 고도화가 진행되어야 합니다. ()[]
 
 **해결**: BLEU(Bilingual Evaluation Understudy)와 같은 평가 지표를 두고, 이를 기반으로 성능이 좋은 방향으로 기준을 잡습니다. → (왜 하필 BLEU인지?)
 

@@ -2,17 +2,17 @@ data:
   data_path: "./kor2en.csv"
   train_size: 0.8
   valid_size: 0.16
-  learning_rate: 1e-3
-  optimizer: adam
   
 
 train:
   h_param:
+    learning_rate: 1e-3
     epochs: 10
     embedding_dim: 512
     hidden_dim: 512
     batch_size: 32
     max_length: 50
+  wandb_exp_name: "rnn-seq2seq-ep10-lr1e-3-bs32-01" # 실험 로그 네이밍 컨벤션: <모델구조(이름 및 특징)-주요변수(hp)-그외특징>
 
 inference:
 

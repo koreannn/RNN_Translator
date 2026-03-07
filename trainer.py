@@ -2,20 +2,27 @@ import os
 import torch
 import torch.nn.functional as F
 import pandas as pd
+import wandb
+
 from pathlib import Path
 from model import Encoder, Decoder, Seq2Seq
 from torch.optim import SGD
 from loguru import logger
 from dataloader import CustomDataLoader
+from utils import load_config
 
 class Trainer:
     def __init__(
-            self, epochs, embedding_dim, hidden_dim, 
+            self, epochs, lr, batch_size, embedding_dim, hidden_dim, 
             train_dataloader, valid_dataloader, 
             encoder_model, decoder_model, seq2seq_model, 
-            device, checkpoint_dir = "checkpoints"
+            device, wandb_project_name, checkpoint_dir = "checkpoints"
         ):
+        # h_param
         self.epochs = epochs
+        self.lr = lr
+        self.batch_size = batch_size
+
         self.train_loader = train_dataloader
         self.valid_loader = valid_dataloader
         self.embedding_dim = embedding_dim
@@ -28,6 +35,7 @@ class Trainer:
         self.best_valid_loss = float("inf")
         self.pad_token_id = 0
         self.device = device
+        self.wandb_project_name = wandb_project_name
     
     def _checkpoint_payload(self, epoch, train_loss, valid_loss):
         return {
@@ -60,6 +68,17 @@ class Trainer:
             logger.info(f"Best updated in epoch {epoch + 1}.")
     
     def train(self):
+        wandb.init(
+            entity = "koreannn-gangneung-national-university",
+            project = "pytorch-rnn-translator",
+            name = self.wandb_project_name,
+            config = {
+                "learning_rate": self.lr,
+                "batch_size": self.batch_size,
+                "architecture": "Vanila-RNN-Seq2Seq",
+            }
+        )
+
         for epoch in range(self.epochs):
             logger.info(f"Epoch {epoch + 1} / {self.epochs}")
             self.seq2seq_model.train()
@@ -106,4 +125,11 @@ class Trainer:
             valid_avg_loss = valid_loss_sum / max(1, valid_steps)
             
             logger.info(f"epoch = {epoch + 1} train_loss = {train_avg_loss:.4f} valid_loss = {valid_avg_loss:.4f}")
+            wandb.log(
+                {
+                    "epoch": epoch + 1,
+                    "train_loss": train_avg_loss,
+                    "valid_loss": valid_avg_loss,
+                }
+            )
             self.save_checkpoint(epoch = epoch, train_loss = train_avg_loss, valid_loss = valid_avg_loss)

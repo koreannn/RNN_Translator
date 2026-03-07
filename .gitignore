@@ -2,3 +2,8 @@
 *.xlsx
 note.py
 checkpoints
+*.env
+*.pt
+*.DS_Store
+__pycache__
+wandb

@@ -25,6 +25,8 @@ if __name__ == "__main__":
     data_path = config["data"]["data_path"]
     kor_tokenizer_name = config["model"]["kor_tokenizer"]
     en_tokenizer_name = config["model"]["en_tokenizer"]
+    wandb_project_name = config["train"]["wandb_exp_name"]
+    learning_rate = config["train"]["h_param"]["learning_rate"]
     
     data = pd.read_csv(data_path)
     kor_tokenizer = AutoTokenizer.from_pretrained(kor_tokenizer_name)
@@ -40,6 +42,8 @@ if __name__ == "__main__":
     
     trainer = Trainer(
         epochs = epochs,
+        lr = learning_rate,
+        batch_size = batch_size,
         embedding_dim = embedding_dim,
         hidden_dim = hidden_dim,
         train_dataloader = train_dataloader,
@@ -47,6 +51,8 @@ if __name__ == "__main__":
         encoder_model = encoder,
         decoder_model = decoder,
         seq2seq_model = seq2seq,
-        device = device
+        device = device,
+        wandb_project_name = wandb_project_name,
     )
+    
     trainer.train()

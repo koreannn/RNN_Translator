@@ -51,6 +51,7 @@ def inference( # greedy방식으로 하나씩 추론
         logger.info(f"번역 전 문장: {kor_tokenizer.decode(src_ids[0].tolist(), skip_special_tokens = True)}")
         generated_ids = [sos_token_id]
         with torch.no_grad():
+            src_ids = src_ids.to(device)
             _, enc_hidden = model.encoder(src_ids)
             dec_hidden = enc_hidden
             dec_input = torch.tensor([[sos_token_id]], dtype = torch.long, device = device)
@@ -65,12 +66,12 @@ def inference( # greedy방식으로 하나씩 추론
                     break
                 
                 dec_input = torch.tensor([[next_id]], dtype = torch.long, device = device)
-            translated = en_tokenizer.decode(generated_ids, skip_special_token = True).strip()
+            translated = en_tokenizer.decode(generated_ids, skip_special_tokens = True).strip()
             logger.info(f"번역된 문장: {translated}")
     return
                 
 if __name__ == "__main__":
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "cuda" if torch.cuda.is_available() else "mps"
     logger.info(f"device: {device}")
     
     kor_tokenizer = AutoTokenizer.from_pretrained("klue/bert-base")
