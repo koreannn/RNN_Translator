@@ -17,6 +17,7 @@ from utils import load_config
 def train(
     epochs, lr, batch_size, embedding_dim, hidden_dim,
     train_loader, valid_loader,
+    kor_vocab_size, en_vocab_size,
     encoder, decoder, seq2seq_model,
     device, wandb_project_name,
     checkpoint_dir = "checkpoints"
@@ -39,8 +40,8 @@ def train(
             "optimizer_state_dict": optimizer.state_dict(),
             "embedding_dim": embedding_dim,
             "hidden_dim": hidden_dim,
-            "kor_vocab_size": 32000,
-            "en_vocab_size": 30522,
+            "kor_vocab_size": kor_vocab_size,
+            "en_vocab_size": en_vocab_size,
             "pad_token_id": pad_token_id,
         }
         torch.save(payload, checkpoint_dir / "last.pt")
@@ -68,13 +69,13 @@ def train(
         train_steps = 0
 
         for _, (src_ids, tgt_input, tgt_label) in enumerate(train_loader):
-            src_ids = src_ids.to(device)      # (bs, (한국어)seq_len)
-            tgt_input = tgt_input.to(device)  # (bs, (영어)seq_len - 1)
-            tgt_label = tgt_label.to(device)  # (bs, (영어)seq_len - 1)
+            src_ids = src_ids.to(device) # (bs, (한국어)seq_len)
+            tgt_input = tgt_input.to(device) # (bs, (영어)seq_len - 1)
+            tgt_label = tgt_label.to(device) # (bs, (영어)seq_len - 1)
 
-            logits = seq2seq_model(src_ids, tgt_input)         # (bs, seq_len, vocab_size)
+            logits = seq2seq_model(src_ids, tgt_input)  # (bs, seq_len, vocab_size)
             logits_flat = logits.reshape(-1, logits.size(-1))  # (bs*seq_len, vocab_size)
-            tgt_label_flat = tgt_label.reshape(-1)             # (bs*seq_len,)
+            tgt_label_flat = tgt_label.reshape(-1) # (bs*seq_len,)
             loss = F.cross_entropy(logits_flat, tgt_label_flat, ignore_index = pad_token_id)
             optimizer.zero_grad()
             loss.backward()
@@ -135,13 +136,16 @@ if __name__ == "__main__":
 
     kor_tokenizer = AutoTokenizer.from_pretrained(kor_tokenizer_name)
     en_tokenizer = AutoTokenizer.from_pretrained(en_tokenizer_name)
+    kor_vocab_size = kor_tokenizer.vocab_size
+    en_vocab_size = en_tokenizer.vocab_size
+    
     data_loader = CustomDataLoader(kor_tokenizer, en_tokenizer, max_length = max_length, batch_size = batch_size)
     train_dataloader, valid_dataloader, _ = data_loader.get_data_loader()
 
     logger.info(f"device: {device}")
 
-    encoder = Encoder(vocab_size = kor_tokenizer.vocab_size, embedding_dim = embedding_dim, hidden_dim = hidden_dim).to(device)
-    decoder = Decoder(vocab_size = en_tokenizer.vocab_size, embedding_dim = embedding_dim, hidden_dim = hidden_dim).to(device)
+    encoder = Encoder(vocab_size = kor_vocab_size, embedding_dim = embedding_dim, hidden_dim = hidden_dim).to(device)
+    decoder = Decoder(vocab_size = en_vocab_size, embedding_dim = embedding_dim, hidden_dim = hidden_dim).to(device)
     seq2seq = Seq2Seq(encoder, decoder).to(device)
 
     train(
@@ -152,6 +156,8 @@ if __name__ == "__main__":
         hidden_dim = hidden_dim,
         train_loader = train_dataloader,
         valid_loader = valid_dataloader,
+        kor_vocab_size = kor_vocab_size,
+        en_vocab_size = en_vocab_size,
         encoder = encoder,
         decoder = decoder,
         seq2seq_model = seq2seq,
