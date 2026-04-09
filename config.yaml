@@ -1,8 +1,4 @@
 data:
-  data_path: "./kor2en.csv"
-  train_size: 0.8
-  valid_size: 0.16
-  
 
 train:
   h_param:

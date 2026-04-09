@@ -7,3 +7,5 @@ checkpoints
 *.DS_Store
 __pycache__
 wandb
+.vscode
+data

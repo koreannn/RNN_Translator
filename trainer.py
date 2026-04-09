@@ -6,7 +6,7 @@ import wandb
 
 from pathlib import Path
 from model import Encoder, Decoder, Seq2Seq
-from torch.optim import SGD
+from torch.optim import Adam
 from loguru import logger
 from dataloader import CustomDataLoader
 from utils import load_config
@@ -30,7 +30,7 @@ class Trainer:
         self.encoder = encoder_model
         self.decoder = decoder_model
         self.seq2seq_model = seq2seq_model
-        self.optimizer = SGD(self.seq2seq_model.parameters(), lr = 1e-3)
+        self.optimizer = Adam(self.seq2seq_model.parameters(), lr = 1e-3)
         self.checkpoint_dir = Path(checkpoint_dir)
         self.best_valid_loss = float("inf")
         self.pad_token_id = 0

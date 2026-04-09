@@ -17,22 +17,25 @@ from utils import load_config
 if __name__ == "__main__":
     config = load_config("config.yaml")
     device = "cuda" if torch.cuda.is_available() else "mps"
+    # h_param
     embedding_dim = config["train"]["h_param"]["embedding_dim"]
     hidden_dim = config["train"]["h_param"]["hidden_dim"]
     epochs = config["train"]["h_param"]["epochs"]
+    learning_rate = config["train"]["h_param"]["learning_rate"]
     max_length = config["train"]["h_param"]["max_length"]
     batch_size = config["train"]["h_param"]["batch_size"]
-    data_path = config["data"]["data_path"]
+    
+    # tokenizer
     kor_tokenizer_name = config["model"]["kor_tokenizer"]
     en_tokenizer_name = config["model"]["en_tokenizer"]
-    wandb_project_name = config["train"]["wandb_exp_name"]
-    learning_rate = config["train"]["h_param"]["learning_rate"]
     
-    data = pd.read_csv(data_path)
+    # wandb
+    wandb_project_name = config["train"]["wandb_exp_name"]
+    
     kor_tokenizer = AutoTokenizer.from_pretrained(kor_tokenizer_name)
     en_tokenizer = AutoTokenizer.from_pretrained(en_tokenizer_name)
-    data_loader = CustomDataLoader(data, kor_tokenizer, en_tokenizer, max_length = max_length, batch_size = batch_size)
-    train_dataloader, valid_dataloader, test_dataloader = data_loader.get_data_loader()
+    data_loader = CustomDataLoader(kor_tokenizer, en_tokenizer, max_length = max_length, batch_size = batch_size)
+    train_dataloader, valid_dataloader, _ = data_loader.get_data_loader()
     
     logger.info(f"device: {device}")
     

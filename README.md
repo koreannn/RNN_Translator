@@ -63,8 +63,7 @@ root/
 ├── config.yaml
 ├── dataloader.py
 ├── inference.py
-├── kor2en.csv
-├── kor2en.xlsx
+├── train.csv
 ├── main.py
 ├── model.py
 ├── note.py

@@ -84,8 +84,7 @@ if __name__ == "__main__":
     
     model = get_model_from_checkpoint(model, device = device)
     
-    data = pd.read_csv("kor2en.csv")
-    dataloader = CustomDataLoader(data, kor_tokenizer, en_tokenizer, max_length = 50, batch_size = 32)
+    dataloader = CustomDataLoader( kor_tokenizer, en_tokenizer, max_length = 50, batch_size = 32)
     _, _, test_dataloader = dataloader.get_data_loader() # test의 데이터로더는 1개씩 들어가도록 고정되어있음
     
     pred = inference(
