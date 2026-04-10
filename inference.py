@@ -1,8 +1,9 @@
 import torch
 import pandas as pd
+import sacrebleu
+
 from loguru import logger
 from transformers import AutoTokenizer
-from trainer import Trainer
 from model import Encoder, Decoder, Seq2Seq
 from dataloader import CustomDataLoader
 
@@ -46,7 +47,10 @@ def inference( # greedy방식으로 하나씩 추론
     if sos_token_id is None or eos_token_id is None:
         raise ValueError("영어 토크나이저는 반드시 cls_token과 sep_token이 있어야합니다.")
     
-    for idx, (src_ids, _, _) in enumerate(test_dataloader): # 학습할때는 (src_ids, tgt_input, tgt_label) / 추론 시에는 오직 자신이 만든 토큰으로 다음 토큰을 예측해야함 -> (src_ids, _, _)
+    all_yhat = []
+    all_ground_truth = []
+    
+    for idx, (src_ids, _, tgt_label) in enumerate(test_dataloader): # 학습할때는 (src_ids, tgt_input, tgt_label) / 추론 시에는 오직 자신이 만든 토큰으로 다음 토큰을 예측해야함 -> (src_ids, _, _)
         
         logger.info(f"번역 전 문장: {kor_tokenizer.decode(src_ids[0].tolist(), skip_special_tokens = True)}")
         generated_ids = [sos_token_id]
@@ -67,8 +71,18 @@ def inference( # greedy방식으로 하나씩 추론
                 
                 dec_input = torch.tensor([[next_id]], dtype = torch.long, device = device)
             translated = en_tokenizer.decode(generated_ids, skip_special_tokens = True).strip()
+            
+            # BLEU
+            ground_truth = en_tokenizer.decode(tgt_label[0].tolist(), skip_special_tokens = True).strip()
+            all_yhat.append(translated)
+            all_ground_truth.append(ground_truth)
+            
             logger.info(f"번역된 문장: {translated}")
-    return
+    
+    bleu_result = sacrebleu.corpus_bleu(all_yhat, [all_ground_truth])
+    logger.info(f"Test corpus BLEU 점수: {bleu_result.score:.2f}")
+    
+    return bleu_result.score
                 
 if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "mps"
@@ -87,7 +101,7 @@ if __name__ == "__main__":
     dataloader = CustomDataLoader( kor_tokenizer, en_tokenizer, max_length = 50, batch_size = 32)
     _, _, test_dataloader = dataloader.get_data_loader() # test의 데이터로더는 1개씩 들어가도록 고정되어있음
     
-    pred = inference(
+    blue_score = inference(
         model,
         kor_tokenizer,
         en_tokenizer,
@@ -96,5 +110,6 @@ if __name__ == "__main__":
         max_length = 50,
         max_new_tokens = 50,
     )
+    logger.info(f"최종 BLEU Score: {blue_score:.2f}")
     
     

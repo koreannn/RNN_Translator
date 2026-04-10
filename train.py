@@ -4,6 +4,7 @@
 import torch
 import torch.nn.functional as F
 import wandb
+import sacrebleu
 
 from pathlib import Path
 from transformers import AutoTokenizer
@@ -17,7 +18,7 @@ from utils import load_config
 def train(
     epochs, lr, batch_size, embedding_dim, hidden_dim,
     train_loader, valid_loader,
-    kor_vocab_size, en_vocab_size,
+    kor_vocab_size, en_vocab_size, en_tokenizer,
     encoder, decoder, seq2seq_model,
     device, wandb_project_name,
     checkpoint_dir = "checkpoints"
@@ -89,6 +90,11 @@ def train(
         seq2seq_model.eval()
         valid_loss_sum = 0.0
         valid_steps = 0
+        
+        # BLEU Score
+        valid_steps = 0
+        all_yhat = []
+        all_ground_truth = []
 
         with torch.no_grad():
             for src_ids, tgt_input, tgt_label in valid_loader:
@@ -103,14 +109,27 @@ def train(
                 loss = F.cross_entropy(logits_flat, tgt_label_flat, ignore_index = pad_token_id)
                 valid_loss_sum += loss.item()
                 valid_steps += 1
+                
+                # BLEU 집계
+                pred_ids = torch.argmax(logits, dim = -1) # (bs, seq_len)
+                for i in range(pred_ids.size(0)):
+                    hyp = en_tokenizer.decode(pred_ids[i].tolist(), skip_special_tokens = True).strip()
+                    ref = en_tokenizer.decode(tgt_label[i].tolist(), skip_special_tokens = True).strip()
+                    all_yhat.append(hyp)
+                    all_ground_truth.append(ref)
 
         valid_avg_loss = valid_loss_sum / max(1, valid_steps)
+        
+        bleu_result = sacrebleu.corpus_bleu(all_yhat, [all_ground_truth])
+        valid_bleu = bleu_result.score
 
-        logger.info(f"epoch = {epoch + 1} train_loss = {train_avg_loss:.4f} valid_loss = {valid_avg_loss:.4f}")
+        logger.info(f"epoch = {epoch + 1} train_loss = {train_avg_loss:.4f} valid_loss = {valid_avg_loss:.4f}"
+                    f"valid_bleu = {valid_bleu:.2f}")
         wandb.log({
             "epoch": epoch + 1,
             "train_loss": train_avg_loss,
             "valid_loss": valid_avg_loss,
+            "valid_bleu": valid_bleu,
         })
         save_checkpoint(epoch = epoch, train_loss = train_avg_loss, valid_loss = valid_avg_loss)
 
