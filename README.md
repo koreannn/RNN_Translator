@@ -61,8 +61,9 @@ GPU 서버 세팅을 간편하게 하기 위해 `.sh`스크립트(`/scripts/setu
 본 프로젝트는 pip가 아닌 uv를 사용하며, 기존의 requirements.txt가 있을 경우, 이로부터 패키지를 이전하는 커맨드는 다음과 같습니다. → `uv add -r requirements.txt`
 
 **실행:**
-
-`bash setup-gpu-server.sh`(또는 `sh setup-gpu-server.sh`)
+1. 레포지토리 clone (`git clone <url>`)
+2. 프로젝트 디렉터리로 이동하여 스크립트 실행 (`bash ./scripts/setup-gpu-server.sh`(또는 `sh ./scripts/setup-gpu-server.sh`))
+3. .venv 환경을 활성화하기 위해 셸 재시작 (source ~/.bashrc)
 
 **기능:**
 

@@ -5,11 +5,7 @@ set -euo pipefail
 GIT_NAME="koreannn"
 GIT_EMAIL="ghdtjdwo5@gmail.com"
 PYTHON_VER="3.11"
-CONDA_ENV_NAME="main"
-REPO_URL="https://github.com/koreannn/RNN_Translator.git"           # 예: https://github.com/yourname/yourrepo.git
-WORKDIR="$HOME/workspace"
-USE_UV=true           # Python 패키지 관리에 uv 사용
-USE_CONDA=true       # CUDA/cuDNN 시스템 라이브러리 관리에 conda 사용
+USE_UV=true
 
 ##################### 로그 함수 #####################
 log()  { echo -e "\n\033[1;32m[INFO]\033[0m $1"; }
@@ -35,53 +31,33 @@ if [ "$USE_UV" = true ]; then
     uv python install "$PYTHON_VER"
 fi
 
-##################### conda 설치 #####################
-if [ "$USE_CONDA" = true ]; then
-    if ! command -v conda &>/dev/null; then
-        log "Miniconda 설치 중..."
-        wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh
-        bash /tmp/miniconda.sh -b -p /opt/conda
-        rm /tmp/miniconda.sh
-        export PATH="/opt/conda/bin:$PATH"
-        echo 'export PATH="/opt/conda/bin:$PATH"' >> ~/.bashrc
+##################### 의존성 설치 #####################
+log "파이썬 패키지 설치 중..."
+if [ "$USE_UV" = true ]; then
+    if [ -f "uv.lock" ]; then
+        log "uv.lock 감지 → uv sync 실행 중..."
+        uv sync
+    elif [ -f "pyproject.toml" ]; then
+        log "pyproject.toml 감지 → uv lock 후 uv sync 실행 중..."
+        uv lock
+        uv sync
+    elif [ -f "requirements.txt" ]; then
+        warn "requirements.txt만 존재. uv add로 설치합니다."
+        uv add -r requirements.txt
     else
-        log "conda 이미 설치되어 있습니다. 건너뜁니다."
-        export PATH="/opt/conda/bin:$PATH"
+        warn "의존성 파일 없음. 패키지 설치를 건너뜁니다."
     fi
-
-    conda init bash
-    conda config --set auto_activate_base false
-    source ~/.bashrc
-
-    log "conda 환경 '$CONDA_ENV_NAME' 생성 중..."
-    conda create -n "$CONDA_ENV_NAME" python="$PYTHON_VER" -y
-
-    echo "conda activate $CONDA_ENV_NAME" >> ~/.bashrc
 fi
 
-##################### 작업 디렉토리 #####################
-log "작업 디렉토리 생성: $WORKDIR"
-mkdir -p "$WORKDIR"
-cd "$WORKDIR"
-
-##################### 레포지토리 clone #####################
-if [ -n "$REPO_URL" ]; then
-    log "레포지토리 clone 중: $REPO_URL"
-    git clone "$REPO_URL" .
-
-    # uv.lock이 존재하면 의존성 자동 설치
-    if [ "$USE_UV" = true ] && [ -f "uv.lock" ]; then
-        log "uv sync로 의존성 설치 중..."
-        uv sync
-    fi
-
-    # requirements.txt만 있는 경우
-    if [ "$USE_UV" = true ] && [ ! -f "uv.lock" ] && [ -f "requirements.txt" ]; then
-        warn "uv.lock 없음. requirements.txt로 대체 설치합니다."
-        uv add -r requirements.txt
-    fi
+##################### .venv 자동 활성화 등록 #####################
+# 스크립트 종료 후 새 터미널 진입 시 자동 활성화되도록 .bashrc에 등록
+VENV_PATH="$(pwd)/.venv/bin/activate"
+if [ -f "$VENV_PATH" ]; then
+    log ".venv 자동 활성화 등록 중..."
+    echo "source $VENV_PATH" >> ~/.bashrc
+    log ".venv 자동 활성화 등록 완료 → 'source ~/.bashrc' 실행 후 적용됩니다."
 else
-    warn "REPO_URL이 설정되지 않았습니다. clone을 건너뜁니다."
+    warn ".venv가 존재하지 않습니다. 활성화 등록을 건너뜁니다."
 fi
 
 ##################### git 설정 #####################
@@ -90,23 +66,19 @@ git config --global user.name  "$GIT_NAME"
 git config --global user.email "$GIT_EMAIL"
 git config --global core.editor vim
 git config --global init.defaultBranch main
-# 긴 세션에서 자격증명 캐시 유지 (6시간)
 git config --global credential.helper "cache --timeout=21600"
 
 ##################### 환경 확인 #####################
 log "환경 확인 중..."
 echo "----------------------------------------"
-echo "Python   : $(python3 --version 2>/dev/null || echo '未설치')"
+echo "Python   : $(python3 --version 2>/dev/null || echo '미설치')"
 echo "CUDA     : $(nvcc --version 2>/dev/null | grep release || echo 'nvcc 없음')"
 echo "GPU      : $(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null || echo 'GPU 없음')"
-
 if [ "$USE_UV" = true ]; then
     echo "uv       : $(uv --version)"
 fi
-if [ "$USE_CONDA" = true ]; then
-    echo "conda    : $(conda --version)"
-fi
-echo "workdir  : $WORKDIR"
 echo "----------------------------------------"
-
-log "세팅 완료."
+log "세팅 완료. 아래 명령어를 실행하십시오."
+echo ""
+echo "    source ~/.bashrc"
+echo ""

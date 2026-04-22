@@ -9,3 +9,7 @@ __pycache__
 wandb
 .vscode
 data
+
+# uv 가상환경 및 패키지 푸시 방지
+.venv
+uv.lock
