@@ -1,0 +1,33 @@
+[project]
+name = "rnn-translator"
+version = "0.1.0"
+description = "PyTorch 기반 RNN Seq2Seq 한국어-영어 번역기"
+requires-python = ">=3.11"
+
+dependencies = [
+    # 딥러닝 코어
+    "torch>=2.0.0",
+
+    # HuggingFace 관련
+    "transformers>=4.40.0",
+    "datasets>=2.19.0",
+
+    # 학습 모니터링
+    "wandb>=0.17.0",
+
+    # 평가 지표
+    "sacrebleu>=2.4.0",
+
+    # 유틸
+    "pyyaml>=6.0",
+    "loguru>=0.7.0",
+    "pandas>=2.0.0",
+
+    # 데모 앱
+    "streamlit>=1.35.0",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "ipykernel>=6.29.0",  # 주피터 노트북 사용 시
+]
