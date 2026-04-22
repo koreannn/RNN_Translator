@@ -1,9 +1,9 @@
 # 프로젝트 소개
 
 ### 프로젝트 취지
-1. LLM을 사용하여 프로젝트를 수행하는것이 대세인 요즘, 한땀한땀 직접 찾아서 직접 구현하는것의 의미를 깨닫습니다. 단순히 결과가 나오는것에 집착하지 않고, 모든 과정을 완벽하게 설명할 수 있는것에 집중합니다.
+1. RNN구조에서도 최대한 개선할 수 있는 부분을 개선한다면 어디까지 성능을 낼 수 있는지 고민해봅니다.
 2. NLP의 핵심인 Attention 이전까지 대세였던 RNN구조(Seq2Seq)가 Transformer구조에 비해 얼마나 성능이 떨어지는지 눈으로 직접 확인합니다.
-3. RNN구조에서도 최대한 개선할 수 있는 부분을 개선한다면 어디까지 성능을 낼 수 있는지 고민해봅니다.
+3. LLM을 사용하여 프로젝트를 수행하는것이 대세인 요즘, 한땀한땀 직접 찾아서 직접 구현하는것의 의미를 깨닫습니다. 단순히 결과가 나오는것에 집착하지 않고, 모든 과정을 완벽하게 설명할 수 있는것에 집중합니다.
 
 <br>
 <br>
@@ -55,6 +55,24 @@ flowchart LR
 
 # 기타
 
+### 프로젝트 환경 세팅
+GPU 서버 세팅을 간편하게 하기 위해 `.sh`스크립트(`/scripts/setup-gpu-server.sh`)를 작성하였습니다. 해당 `.sh`스크립트를 본인 환경에 맞추어 작성한 뒤 사용하면 간편하게 GPU 서버를 세팅할 수 있습니다.
+
+본 프로젝트는 pip가 아닌 uv를 사용하며, 기존의 requirements.txt가 있을 경우, 이로부터 패키지를 이전하는 커맨드는 다음과 같습니다. → `uv add -r requirements.txt`
+
+**실행:**
+
+`bash setup-gpu-server.sh`(또는 `sh setup-gpu-server.sh`)
+
+**기능:**
+
+- 깃 사용자 정보 등록 및 깃허브 원격 저장소 등록
+- 파이썬 패키지 관리 도구(`uv`)설치 / 지정한 버전으로 Python설치 / `~/.bashrc`에 PATH 등록
+- 아나콘다 설치 (conda가 없을 경우 Miniconda를 `/opt/conda`에 설치)
+  - 순수 파이썬 패키지는 uv, CUDA/cuDNN등 시스템 레벨 바이너리 관리는 conda가 수행합니다.
+- `pyproject.toml`, `uv.lock`에 명시된 패키지 설치
+
+
 ### 프로젝트 디렉터리 구조
 ```
 root/
@@ -76,5 +94,5 @@ root/
 
 ### 데이터셋 출처
 
-[AI Hub](https://aihub.or.kr/aihubdata/data/dwld.do?currMenu=115&topMenu=100&dataSetSn=126)
+- [HuggingFace Helsinki-NLP/opus-100 'en-ko' 데이터셋](https://huggingface.co/datasets/Helsinki-NLP/opus-100)
 
