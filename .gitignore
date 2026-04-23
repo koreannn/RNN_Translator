@@ -1,6 +1,8 @@
+# data
 *.csv
 *.xlsx
-note.py
+data
+
 checkpoints
 *.env
 *.pt
@@ -8,8 +10,12 @@ checkpoints
 __pycache__
 wandb
 .vscode
-data
+*.log
+
 
 # uv 가상환경 및 패키지 푸시 방지
 .venv
 uv.lock
+
+# 테스트용 파일
+note.py

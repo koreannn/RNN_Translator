@@ -2,32 +2,40 @@
 name = "rnn-translator"
 version = "0.1.0"
 description = "PyTorch 기반 RNN Seq2Seq 한국어-영어 번역기"
-requires-python = ">=3.11"
+requires-python = ">=3.11, <3.14"
 
 dependencies = [
     # 딥러닝 코어
-    "torch>=2.0.0",
+    "torch>=2.5.1",
 
     # HuggingFace 관련
-    "transformers>=4.40.0",
-    "datasets>=2.19.0",
+    "transformers>=4.57.0",
+    "datasets>=4.8.2",
 
     # 학습 모니터링
-    "wandb>=0.17.0",
+    "wandb>=0.25.0",
 
     # 평가 지표
-    "sacrebleu>=2.4.0",
+    "sacrebleu>=2.6.0",
 
     # 유틸
-    "pyyaml>=6.0",
-    "loguru>=0.7.0",
-    "pandas>=2.0.0",
+    "pyyaml>=6.0.3",
+    "loguru>=0.7.3",
+    "pandas>=2.3.3",
 
     # 데모 앱
-    "streamlit>=1.35.0",
+    "streamlit>=1.52.2",
 ]
 
 [tool.uv]
 dev-dependencies = [
     "ipykernel>=6.29.0",  # 주피터 노트북 사용 시
 ]
+
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true  # torch에만 적용, 나머지는 PyPI 사용
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu124" } # torch만 PyTorch 인덱스에서 설치

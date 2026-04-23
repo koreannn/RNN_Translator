@@ -149,15 +149,14 @@ if __name__ == "__main__":
     # tokenizer
     kor_tokenizer_name = config["model"]["kor_tokenizer"]
     en_tokenizer_name = config["model"]["en_tokenizer"]
-
-    # wandb
-    wandb_project_name = config["train"]["wandb_exp_name"]
-
     kor_tokenizer = AutoTokenizer.from_pretrained(kor_tokenizer_name)
     en_tokenizer = AutoTokenizer.from_pretrained(en_tokenizer_name)
     kor_vocab_size = kor_tokenizer.vocab_size
     en_vocab_size = en_tokenizer.vocab_size
-    
+
+    # wandb
+    wandb_project_name = config["train"]["wandb_exp_name"]
+
     data_loader = CustomDataLoader(kor_tokenizer, en_tokenizer, max_length = max_length, batch_size = batch_size)
     train_dataloader, valid_dataloader, _ = data_loader.get_data_loader()
 
@@ -177,6 +176,7 @@ if __name__ == "__main__":
         valid_loader = valid_dataloader,
         kor_vocab_size = kor_vocab_size,
         en_vocab_size = en_vocab_size,
+        en_tokenizer = en_tokenizer,
         encoder = encoder,
         decoder = decoder,
         seq2seq_model = seq2seq,
