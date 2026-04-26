@@ -1,4 +1,7 @@
-data:
+wandb:
+  entity: "koreannn-gangneung-national-university"
+  project: "pytorch-rnn-translator"
+  architecture: "Vanila-RNN-Seq2Seq"
 
 train:
   h_param:
@@ -12,7 +15,7 @@ train:
 
 inference:
 
-
 model:
   kor_tokenizer: "klue/bert-base"
   en_tokenizer: "google-bert/bert-base-uncased"
+

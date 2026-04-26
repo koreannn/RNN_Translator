@@ -21,7 +21,8 @@ def train(
     kor_vocab_size, en_vocab_size, en_tokenizer,
     encoder, decoder, seq2seq_model,
     device, wandb_project_name,
-    checkpoint_dir = "checkpoints"
+    wandb_entity, wandb_project, wandb_architecture,
+    checkpoint_dir = "checkpoints",
 ):
     optimizer = Adam(seq2seq_model.parameters(), lr = lr)
     checkpoint_dir = Path(checkpoint_dir)
@@ -53,13 +54,13 @@ def train(
             logger.info(f"Best updated in epoch {epoch + 1}.")
 
     wandb.init(
-        entity = "koreannn-gangneung-national-university",
-        project = "pytorch-rnn-translator",
+        entity = wandb_entity,
+        project = wandb_project,
         name = wandb_project_name,
         config = {
             "learning_rate": lr,
             "batch_size": batch_size,
-            "architecture": "Vanila-RNN-Seq2Seq",
+            "architecture": wandb_architecture,
         }
     )
 
@@ -156,6 +157,9 @@ if __name__ == "__main__":
 
     # wandb
     wandb_project_name = config["train"]["wandb_exp_name"]
+    wandb_project = config["wandb"]["wandb_project"]
+    wandb_entity = config["wandb"]["wandb_entity"]
+    wandb_architecture = config["wandb"]["wandb_architecture"]
 
     data_loader = CustomDataLoader(kor_tokenizer, en_tokenizer, max_length = max_length, batch_size = batch_size)
     train_dataloader, valid_dataloader, _ = data_loader.get_data_loader()
@@ -181,5 +185,8 @@ if __name__ == "__main__":
         decoder = decoder,
         seq2seq_model = seq2seq,
         device = device,
+        wandb_project = wandb_project,
+        wandb_entity = wandb_entity,
+        wandb_architecture = wandb_architecture,
         wandb_project_name = wandb_project_name,
     )
