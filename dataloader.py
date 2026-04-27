@@ -90,7 +90,7 @@ class CustomDataLoader:
         
         test_dataloader = DataLoader(
             self.test_data,
-            batch_size = 1,
+            batch_size = batch_size,
             shuffle = True,
             num_workers = 1,
             collate_fn = self._collate_fn,

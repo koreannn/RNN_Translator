@@ -88,6 +88,11 @@ if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "mps"
     logger.info(f"device: {device}")
     
+    config = load_config("config.yaml")
+    # h_param
+    max_length = config["inference"]["max_length"]
+    batch_size = config["inference"]["batch_size"]
+    
     kor_tokenizer = AutoTokenizer.from_pretrained("klue/bert-base")
     en_tokenizer = AutoTokenizer.from_pretrained("google-bert/bert-base-uncased")
     
@@ -98,7 +103,7 @@ if __name__ == "__main__":
     
     model = get_model_from_checkpoint(model, device = device)
     
-    dataloader = CustomDataLoader( kor_tokenizer, en_tokenizer, max_length = 50, batch_size = 32)
+    dataloader = CustomDataLoader(kor_tokenizer, en_tokenizer, max_length = max_length, batch_size = batch_size)
     _, _, test_dataloader = dataloader.get_data_loader() # test의 데이터로더는 1개씩 들어가도록 고정되어있음
     
     blue_score = inference(
