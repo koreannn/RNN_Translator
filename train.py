@@ -93,7 +93,6 @@ def train(
         valid_steps = 0
         
         # BLEU Score
-        valid_steps = 0
         all_yhat = []
         all_ground_truth = []
 
@@ -124,8 +123,7 @@ def train(
         bleu_result = sacrebleu.corpus_bleu(all_yhat, [all_ground_truth])
         valid_bleu = bleu_result.score
 
-        logger.info(f"epoch = {epoch + 1} train_loss = {train_avg_loss:.4f} valid_loss = {valid_avg_loss:.4f}"
-                    f"valid_bleu = {valid_bleu:.2f}")
+        logger.info(f"epoch = {epoch + 1} train_loss = {train_avg_loss:.4f} valid_loss = {valid_avg_loss:.4f} valid_bleu = {valid_bleu:.2f}")
         wandb.log({
             "epoch": epoch + 1,
             "train_loss": train_avg_loss,

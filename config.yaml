@@ -1,7 +1,7 @@
 wandb:
-  entity: "koreannn-gangneung-national-university"
-  project: "pytorch-rnn-translator"
-  architecture: "Vanila-RNN-Seq2Seq"
+  wandb_entity: "koreannn-gangneung-national-university"
+  wandb_project: "pytorch-rnn-translator"
+  wandb_architecture: "Vanila-RNN-Seq2Seq"
 
 train:
   h_param:
