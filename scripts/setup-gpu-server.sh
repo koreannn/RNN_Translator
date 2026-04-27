@@ -31,6 +31,23 @@ if [ "$USE_UV" = true ]; then
     uv python install "$PYTHON_VER"
 fi
 
+##################### wandb 설정 #####################
+WANDB_ENV_FILE=".env"
+
+if [ -f "$WANDB_ENV_FILE" ]; then
+    WANDB_API_KEY_VALUE=$(grep -E "^WANDB_API_KEY" "$WANDB_ENV_FILE" | cut -d '=' -f2 | tr -d ' ')
+    if [ -n "$WANDB_API_KEY_VALUE" ]; then
+        log "WandB 로그인 중..."
+        wandb login --relogin "$WANDB_API_KEY_VALUE"
+        log "WandB 로그인 완료."
+    else
+        warn ".env에 WANDB_API_KEY가 비어 있습니다. WandB 설정을 건너뜁니다."
+    fi
+else
+    warn ".env 파일이 없습니다. WandB 설정을 건너뜁니다."
+fi
+
+
 ##################### 의존성 설치 #####################
 log "파이썬 패키지 설치 중..."
 if [ "$USE_UV" = true ]; then

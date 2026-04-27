@@ -62,11 +62,13 @@ GPU 서버 세팅을 간편하게 하기 위해 `.sh`스크립트(`/scripts/setu
 
 **실행:**
 1. 레포지토리 clone (`git clone <url>`)
-2. 프로젝트 디렉터리로 이동하여 스크립트 실행 (`bash ./scripts/setup-gpu-server.sh`(또는 `sh ./scripts/setup-gpu-server.sh`))
-3. .venv 환경을 활성화하기 위해 셸 재시작 (source ~/.bashrc)
+2. wandb설정을 위해 `.env`파일 생성 및 환경변수 설정
+3. 프로젝트 디렉터리로 이동하여 스크립트 실행 (`bash ./scripts/setup-gpu-server.sh`(또는 `sh ./scripts/setup-gpu-server.sh`))
+4. .venv 환경을 활성화하기 위해 셸 재시작 (source ~/.bashrc)
 
 **기능:**
 
+- wandb 자동 로그인
 - 깃 사용자 정보 등록 및 깃허브 원격 저장소 등록
 - 파이썬 패키지 관리 도구(`uv`)설치 / 지정한 버전으로 Python설치 / `~/.bashrc`에 PATH 등록
 - 아나콘다 설치 (conda가 없을 경우 Miniconda를 `/opt/conda`에 설치)
