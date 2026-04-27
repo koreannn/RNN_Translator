@@ -61,6 +61,7 @@ GPU 서버 세팅을 간편하게 하기 위해 `.sh`스크립트(`/scripts/setu
 본 프로젝트는 pip가 아닌 uv를 사용하며, 기존의 requirements.txt가 있을 경우, 이로부터 패키지를 이전하는 커맨드는 다음과 같습니다. → `uv add -r requirements.txt`
 
 **실행:**
+
 1. 레포지토리 clone (`git clone <url>`)
 2. wandb설정을 위해 `.env`파일 생성 및 환경변수 설정
 3. 프로젝트 디렉터리로 이동하여 스크립트 실행 (`bash ./scripts/setup-gpu-server.sh`(또는 `sh ./scripts/setup-gpu-server.sh`))
@@ -68,12 +69,12 @@ GPU 서버 세팅을 간편하게 하기 위해 `.sh`스크립트(`/scripts/setu
 
 **기능:**
 
-- wandb 자동 로그인
 - 깃 사용자 정보 등록 및 깃허브 원격 저장소 등록
 - 파이썬 패키지 관리 도구(`uv`)설치 / 지정한 버전으로 Python설치 / `~/.bashrc`에 PATH 등록
 - 아나콘다 설치 (conda가 없을 경우 Miniconda를 `/opt/conda`에 설치)
   - 순수 파이썬 패키지는 uv, CUDA/cuDNN등 시스템 레벨 바이너리 관리는 conda가 수행합니다.
 - `pyproject.toml`, `uv.lock`에 명시된 패키지 설치
+- 기본 환경 세팅 이후 유틸성 세팅은 `.scripts/setup-utils.sh`스크립트 실행
 
 
 ### 프로젝트 디렉터리 구조

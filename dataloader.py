@@ -37,7 +37,7 @@ class CustomDataLoader:
         self.en_pad_token_id = self.en_tokenizer.pad_token_id
         self.batch_size = batch_size
         self.max_length = max_length
-        self.sos_token = self.en_tokenizer
+        self.sos_token = self.en_tokenizer.cls_token_id
     
     def _collate_fn(self, batch):
         src_text = [src for src, _ in batch]

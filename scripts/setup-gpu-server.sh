@@ -1,6 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
+##################### 스크립트 파일 위치 기준 프로젝트 루트로 이동 후 커맨드 실행 #####################
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+cd "$PROJECT_ROOT"
+
 ##################### 설정 변수 #####################
 GIT_NAME="koreannn"
 GIT_EMAIL="ghdtjdwo5@gmail.com"
@@ -31,34 +37,18 @@ if [ "$USE_UV" = true ]; then
     uv python install "$PYTHON_VER"
 fi
 
-##################### wandb 설정 #####################
-WANDB_ENV_FILE=".env"
-
-if [ -f "$WANDB_ENV_FILE" ]; then
-    WANDB_API_KEY_VALUE=$(grep -E "^WANDB_API_KEY" "$WANDB_ENV_FILE" | cut -d '=' -f2 | tr -d ' ')
-    if [ -n "$WANDB_API_KEY_VALUE" ]; then
-        log "WandB 로그인 중..."
-        wandb login --relogin "$WANDB_API_KEY_VALUE"
-        log "WandB 로그인 완료."
-    else
-        warn ".env에 WANDB_API_KEY가 비어 있습니다. WandB 설정을 건너뜁니다."
-    fi
-else
-    warn ".env 파일이 없습니다. WandB 설정을 건너뜁니다."
-fi
-
 
 ##################### 의존성 설치 #####################
 log "파이썬 패키지 설치 중..."
 if [ "$USE_UV" = true ]; then
-    if [ -f "uv.lock" ]; then
+    if [ -f "uv.lock" ]; then # uv.lock가 이미 있을 경우
         log "uv.lock 감지 → uv sync 실행 중..."
         uv sync
-    elif [ -f "pyproject.toml" ]; then
+    elif [ -f "pyproject.toml" ]; then # pyproject.toml만 있을 경우
         log "pyproject.toml 감지 → uv lock 후 uv sync 실행 중..."
         uv lock
         uv sync
-    elif [ -f "requirements.txt" ]; then
+    elif [ -f "requirements.txt" ]; then # requirements.txt가 있을 경우
         warn "requirements.txt만 존재. uv add로 설치합니다."
         uv add -r requirements.txt
     else
@@ -76,6 +66,7 @@ if [ -f "$VENV_PATH" ]; then
 else
     warn ".venv가 존재하지 않습니다. 활성화 등록을 건너뜁니다."
 fi
+
 
 ##################### git 설정 #####################
 log "git 전역 설정 중..."
