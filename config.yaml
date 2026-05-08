@@ -15,6 +15,7 @@ train:
 
 inference:
   max_length: 50
+  batch_size: 1
 
 model:
   kor_tokenizer: "klue/bert-base"

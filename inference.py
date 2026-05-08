@@ -3,6 +3,7 @@ import pandas as pd
 import sacrebleu
 
 from loguru import logger
+from utils import load_config
 from transformers import AutoTokenizer
 from model import Encoder, Decoder, Seq2Seq
 from dataloader import CustomDataLoader
@@ -98,23 +99,32 @@ if __name__ == "__main__":
     
     model_checkpoint_path = "checkpoints/best.pt"
     model = load_checkpoint(model_checkpoint_path, device = device)
+    
     # logger.info(f"Loaded checkpoint from {model_checkpoint_path} (epoch = {model.get("epoch")} & validation loss = {model.get("valid_loss")})")
     logger.info(f"Loaded checkpoint from {model_checkpoint_path}")
     
     model = get_model_from_checkpoint(model, device = device)
     
-    dataloader = CustomDataLoader(kor_tokenizer, en_tokenizer, max_length = max_length, batch_size = batch_size)
-    _, _, test_dataloader = dataloader.get_data_loader() # test의 데이터로더는 1개씩 들어가도록 고정되어있음
+    embedding_matrix = model.encoder.embedding.weight.detach()
+    token_id = kor_tokenizer.encode("고양이", add_special_tokens = False)[0]
     
-    blue_score = inference(
-        model,
-        kor_tokenizer,
-        en_tokenizer,
-        device,
-        test_dataloader,
-        max_length = 50,
-        max_new_tokens = 50,
-    )
-    logger.info(f"최종 BLEU Score: {blue_score:.2f}")
+    vec = embedding_matrix[token_id]
+    sims = torch.cosine_similarity(vec.unsqueeze(0), embedding_matrix)
+    topk = torch.topk(sims, k = 10)
+    print(kor_tokenizer.convert_ids_to_tokens(topk.indices.tolist()))
+    
+    # dataloader = CustomDataLoader(kor_tokenizer, en_tokenizer, max_length = max_length, batch_size = batch_size)
+    # _, _, test_dataloader = dataloader.get_data_loader() # test의 데이터로더는 1개씩 들어가도록 고정되어있음
+    
+    # blue_score = inference(
+    #     model,
+    #     kor_tokenizer,
+    #     en_tokenizer,
+    #     device,
+    #     test_dataloader,
+    #     max_length = 50,
+    #     max_new_tokens = 50,
+    # )
+    # logger.info(f"최종 BLEU Score: {blue_score:.2f}")
     
     
