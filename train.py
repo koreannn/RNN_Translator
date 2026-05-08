@@ -7,7 +7,7 @@ import wandb
 import sacrebleu
 
 from pathlib import Path
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, AutoModel
 from torch.optim import Adam
 from loguru import logger
 from dataloader import CustomDataLoader
@@ -150,6 +150,8 @@ if __name__ == "__main__":
     en_tokenizer_name = config["model"]["en_tokenizer"]
     kor_tokenizer = AutoTokenizer.from_pretrained(kor_tokenizer_name)
     en_tokenizer = AutoTokenizer.from_pretrained(en_tokenizer_name)
+    kor_pretrained_weight = AutoModel.from_pretrained(kor_tokenizer_name).embeddings.word_embeddings.weight.detach()
+    en_pretrained_weight = AutoModel.from_pretrained(en_tokenizer_name).embeddings.word_embeddings.weight.detach()
     kor_vocab_size = kor_tokenizer.vocab_size
     en_vocab_size = en_tokenizer.vocab_size
 
@@ -164,8 +166,8 @@ if __name__ == "__main__":
 
     logger.info(f"device: {device}")
 
-    encoder = Encoder(vocab_size = kor_vocab_size, embedding_dim = embedding_dim, hidden_dim = hidden_dim).to(device)
-    decoder = Decoder(vocab_size = en_vocab_size, embedding_dim = embedding_dim, hidden_dim = hidden_dim).to(device)
+    encoder = Encoder(vocab_size = kor_vocab_size, embedding_dim = embedding_dim, hidden_dim = hidden_dim, pretrained_weight = kor_pretrained_weight).to(device)
+    decoder = Decoder(vocab_size = en_vocab_size, embedding_dim = embedding_dim, hidden_dim = hidden_dim, pretrained_weight = en_pretrained_weight).to(device)
     seq2seq = Seq2Seq(encoder, decoder).to(device)
 
     train(

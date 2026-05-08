@@ -2,9 +2,14 @@ import torch
 import torch.nn as nn
 
 class Encoder(nn.Module):
-    def __init__(self, vocab_size, embedding_dim, hidden_dim):
+    def __init__(self, vocab_size, embedding_dim, hidden_dim, pretrained_weight = None):
         super().__init__()
-        self.embedding = nn.Embedding(num_embeddings = vocab_size, embedding_dim = embedding_dim)
+        self.embedding = nn.Embedding(vocab_size, embedding_dim)
+        
+        if pretrained_weight is not None:
+            self.embedding.weight.data.copy_(pretrained_weight)
+        
+        # nn.Embedding을 선언하고, self.embedding을 삽입
         self.rnn = nn.RNN(input_size = embedding_dim, hidden_size = hidden_dim, batch_first = True)
         
     def forward(self, src_ids):
@@ -14,9 +19,13 @@ class Encoder(nn.Module):
         return outputs, hidden
 
 class Decoder(nn.Module):
-    def __init__(self, vocab_size, embedding_dim, hidden_dim):
+    def __init__(self, vocab_size, embedding_dim, hidden_dim, pretrained_weight = None):
         super().__init__()
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
+        
+        if pretrained_weight is not None:
+            self.embedding.weight.data.copy_(pretrained_weight)
+        
         self.rnn = nn.RNN(input_size = embedding_dim, hidden_size = hidden_dim, batch_first = True)
         self.fc = nn.Linear(hidden_dim, vocab_size)
         

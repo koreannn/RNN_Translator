@@ -105,26 +105,18 @@ if __name__ == "__main__":
     
     model = get_model_from_checkpoint(model, device = device)
     
-    embedding_matrix = model.encoder.embedding.weight.detach()
-    token_id = kor_tokenizer.encode("고양이", add_special_tokens = False)[0]
+    dataloader = CustomDataLoader(kor_tokenizer, en_tokenizer, max_length = max_length, batch_size = batch_size)
+    _, _, test_dataloader = dataloader.get_data_loader() # test의 데이터로더는 1개씩 들어가도록 고정되어있음
     
-    vec = embedding_matrix[token_id]
-    sims = torch.cosine_similarity(vec.unsqueeze(0), embedding_matrix)
-    topk = torch.topk(sims, k = 10)
-    print(kor_tokenizer.convert_ids_to_tokens(topk.indices.tolist()))
-    
-    # dataloader = CustomDataLoader(kor_tokenizer, en_tokenizer, max_length = max_length, batch_size = batch_size)
-    # _, _, test_dataloader = dataloader.get_data_loader() # test의 데이터로더는 1개씩 들어가도록 고정되어있음
-    
-    # blue_score = inference(
-    #     model,
-    #     kor_tokenizer,
-    #     en_tokenizer,
-    #     device,
-    #     test_dataloader,
-    #     max_length = 50,
-    #     max_new_tokens = 50,
-    # )
-    # logger.info(f"최종 BLEU Score: {blue_score:.2f}")
+    blue_score = inference(
+        model,
+        kor_tokenizer,
+        en_tokenizer,
+        device,
+        test_dataloader,
+        max_length = 50,
+        max_new_tokens = 50,
+    )
+    logger.info(f"최종 BLEU Score: {blue_score:.2f}")
     
     

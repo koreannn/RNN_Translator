@@ -7,7 +7,7 @@ train:
   h_param:
     learning_rate: 0.001
     epochs: 10
-    embedding_dim: 512
+    embedding_dim: 768 # kor-tokenizer의 임베딩 차원에 맞춰서
     hidden_dim: 512
     batch_size: 256
     max_length: 50
