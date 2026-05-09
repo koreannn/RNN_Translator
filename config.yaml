@@ -2,16 +2,17 @@ wandb:
   wandb_entity: "koreannn-gangneung-national-university"
   wandb_project: "pytorch-rnn-translator"
   wandb_architecture: "Vanila-RNN-Seq2Seq"
+  
 
 train:
   h_param:
     learning_rate: 0.001
     epochs: 10
     embedding_dim: 768 # kor-tokenizer의 임베딩 차원에 맞춰서
-    hidden_dim: 512
+    hidden_dim: 768
     batch_size: 256
     max_length: 50
-  wandb_exp_name: "rnn-seq2seq-ep10-lr1e-3-bs32-01" # 실험 로그 네이밍 컨벤션: <모델구조(이름 및 특징)-주요변수(hp)-그외특징>
+  model_architecture: "Seq2Seq-with-RNN"
 
 inference:
   max_length: 50

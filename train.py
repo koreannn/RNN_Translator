@@ -138,6 +138,7 @@ if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "mps"
 
     # h_param
+    model_architecture = config["train"]["model_architecture"]
     epochs = config["train"]["h_param"]["epochs"]
     learning_rate = config["train"]["h_param"]["learning_rate"]
     batch_size = config["train"]["h_param"]["batch_size"]
@@ -156,11 +157,14 @@ if __name__ == "__main__":
     en_vocab_size = en_tokenizer.vocab_size
 
     # wandb
-    wandb_project_name = config["train"]["wandb_exp_name"]
     wandb_project = config["wandb"]["wandb_project"]
     wandb_entity = config["wandb"]["wandb_entity"]
     wandb_architecture = config["wandb"]["wandb_architecture"]
-
+    wandb_exp_name = f"architecture{model_architecture}-ep{epochs}-lr{learning_rate}-bs{batch_size}-emb{embedding_dim}-hid{hidden_dim}" # 실험 로그 네이밍 컨벤션: <모델구조(이름 및 특징)-주요변수(hp)-그외특징>
+    
+    # 로그 기록
+    logger.add(f"logs/train_{wandb_exp_name}", encoding = "utf-8")
+    
     data_loader = CustomDataLoader(kor_tokenizer, en_tokenizer, max_length = max_length, batch_size = batch_size)
     train_dataloader, valid_dataloader, _ = data_loader.get_data_loader()
 
@@ -188,5 +192,5 @@ if __name__ == "__main__":
         wandb_project = wandb_project,
         wandb_entity = wandb_entity,
         wandb_architecture = wandb_architecture,
-        wandb_project_name = wandb_project_name,
+        wandb_project_name = wandb_exp_name,
     )
