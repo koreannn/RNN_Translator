@@ -1,3 +1,30 @@
+# 랜덤 초기화된 Embedding Layer 사용
+2026-05-11 04:20:41.898 | INFO     | __main__:<module>:171 - device: cuda
+2026-05-11 04:20:44.439 | INFO     | __main__:train:68 - Epoch 1 / 10
+2026-05-11 04:34:04.666 | INFO     | __main__:train:126 - epoch = 1 train_loss = 3.5333 valid_loss = 3.3729 valid_bleu = 2.28
+2026-05-11 04:34:07.549 | INFO     | __main__:save_checkpoint:54 - Best updated in epoch 1.
+2026-05-11 04:34:07.549 | INFO     | __main__:train:68 - Epoch 2 / 10
+2026-05-11 04:47:31.611 | INFO     | __main__:train:126 - epoch = 2 train_loss = 2.8790 valid_loss = 3.2826 valid_bleu = 2.41
+2026-05-11 04:47:34.457 | INFO     | __main__:save_checkpoint:54 - Best updated in epoch 2.
+2026-05-11 04:47:34.457 | INFO     | __main__:train:68 - Epoch 3 / 10
+2026-05-11 05:00:57.488 | INFO     | __main__:train:126 - epoch = 3 train_loss = 2.6321 valid_loss = 3.3149 valid_bleu = 2.44
+2026-05-11 05:00:58.920 | INFO     | __main__:train:68 - Epoch 4 / 10
+2026-05-11 05:14:23.018 | INFO     | __main__:train:126 - epoch = 4 train_loss = 2.4832 valid_loss = 3.3322 valid_bleu = 2.53
+2026-05-11 05:14:24.445 | INFO     | __main__:train:68 - Epoch 5 / 10
+2026-05-11 05:27:47.366 | INFO     | __main__:train:126 - epoch = 5 train_loss = 2.3834 valid_loss = 3.4130 valid_bleu = 2.46
+2026-05-11 05:27:48.528 | INFO     | __main__:train:68 - Epoch 6 / 10
+2026-05-11 05:41:11.347 | INFO     | __main__:train:126 - epoch = 6 train_loss = 2.3109 valid_loss = 3.4433 valid_bleu = 2.88
+2026-05-11 05:41:12.765 | INFO     | __main__:train:68 - Epoch 7 / 10
+2026-05-11 05:54:35.047 | INFO     | __main__:train:126 - epoch = 7 train_loss = 2.2574 valid_loss = 3.5096 valid_bleu = 2.35
+2026-05-11 05:54:36.479 | INFO     | __main__:train:68 - Epoch 8 / 10
+2026-05-11 06:07:58.682 | INFO     | __main__:train:126 - epoch = 8 train_loss = 2.2172 valid_loss = 3.5390 valid_bleu = 2.33
+2026-05-11 06:07:59.845 | INFO     | __main__:train:68 - Epoch 9 / 10
+2026-05-11 06:21:22.794 | INFO     | __main__:train:126 - epoch = 9 train_loss = 2.1866 valid_loss = 3.5912 valid_bleu = 2.32
+2026-05-11 06:21:24.238 | INFO     | __main__:train:68 - Epoch 10 / 10
+2026-05-11 06:34:45.994 | INFO     | __main__:train:126 - epoch = 10 train_loss = 2.1639 valid_loss = 3.6251 valid_bleu = 2.37
+inference BLEU Score: 6.55
+
+# 사전학습된 임베딩 레이어 사용 + Fine Tuning
 2026-05-10 10:23:05.222 | INFO     | __main__:<module>:171 - device: cuda
 2026-05-10 10:23:07.558 | INFO     | __main__:train:68 - Epoch 1 / 10
 2026-05-10 10:36:27.656 | INFO     | __main__:train:126 - epoch = 1 train_loss = 3.6258 valid_loss = 3.2755 valid_bleu = 2.26
@@ -22,3 +49,33 @@
 2026-05-10 12:24:03.281 | INFO     | __main__:train:126 - epoch = 9 train_loss = 1.7265 valid_loss = 3.4763 valid_bleu = 2.50
 2026-05-10 12:24:04.928 | INFO     | __main__:train:68 - Epoch 10 / 10
 2026-05-10 12:37:31.416 | INFO     | __main__:train:126 - epoch = 10 train_loss = 1.6689 valid_loss = 3.5495 valid_bleu = 2.67
+inference BLEU Score: 5.26
+
+# 사전학습된 임베딩 레이어 사용 + Frozen
+2026-05-11 09:09:22.862 | INFO     | __main__:<module>:171 - device: cuda
+2026-05-11 09:09:25.488 | INFO     | __main__:train:68 - Epoch 1 / 10
+2026-05-11 09:21:54.880 | INFO     | __main__:train:126 - epoch = 1 train_loss = 3.7728 valid_loss = 3.3617 valid_bleu = 3.24
+2026-05-11 09:21:56.557 | INFO     | __main__:save_checkpoint:54 - Best updated in epoch 1.
+2026-05-11 09:21:56.558 | INFO     | __main__:train:68 - Epoch 2 / 10
+2026-05-11 09:34:29.270 | INFO     | __main__:train:126 - epoch = 2 train_loss = 2.9489 valid_loss = 3.1370 valid_bleu = 3.04
+2026-05-11 09:34:30.932 | INFO     | __main__:save_checkpoint:54 - Best updated in epoch 2.
+2026-05-11 09:34:30.933 | INFO     | __main__:train:68 - Epoch 3 / 10
+2026-05-11 09:47:03.741 | INFO     | __main__:train:126 - epoch = 3 train_loss = 2.6688 valid_loss = 3.0700 valid_bleu = 4.59
+2026-05-11 09:47:05.392 | INFO     | __main__:save_checkpoint:54 - Best updated in epoch 3.
+2026-05-11 09:47:05.392 | INFO     | __main__:train:68 - Epoch 4 / 10
+2026-05-11 09:59:38.497 | INFO     | __main__:train:126 - epoch = 4 train_loss = 2.4962 valid_loss = 3.0639 valid_bleu = 5.24
+2026-05-11 09:59:40.163 | INFO     | __main__:save_checkpoint:54 - Best updated in epoch 4.
+2026-05-11 09:59:40.164 | INFO     | __main__:train:68 - Epoch 5 / 10
+2026-05-11 10:12:13.628 | INFO     | __main__:train:126 - epoch = 5 train_loss = 2.3726 valid_loss = 3.0551 valid_bleu = 4.28
+2026-05-11 10:12:15.267 | INFO     | __main__:save_checkpoint:54 - Best updated in epoch 5.
+2026-05-11 10:12:15.267 | INFO     | __main__:train:68 - Epoch 6 / 10
+2026-05-11 10:24:48.604 | INFO     | __main__:train:126 - epoch = 6 train_loss = 2.2779 valid_loss = 3.0856 valid_bleu = 3.42
+2026-05-11 10:24:49.437 | INFO     | __main__:train:68 - Epoch 7 / 10
+2026-05-11 10:37:21.996 | INFO     | __main__:train:126 - epoch = 7 train_loss = 2.2043 valid_loss = 3.1291 valid_bleu = 3.68
+2026-05-11 10:37:22.845 | INFO     | __main__:train:68 - Epoch 8 / 10
+2026-05-11 10:49:56.696 | INFO     | __main__:train:126 - epoch = 8 train_loss = 2.1407 valid_loss = 3.1616 valid_bleu = 3.51
+2026-05-11 10:49:58.348 | INFO     | __main__:train:68 - Epoch 9 / 10
+inference BLEU Score: 5.97
+
+
+# 사전 학습된 임베딩 레이어 사용 + 낮은 lr (임베딩 레이어에 낮은 lr 사용)

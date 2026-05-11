@@ -15,3 +15,4 @@
 2026-05-09 12:14:19.870 | INFO     | __main__:train:68 - Epoch 6 / 10
 2026-05-09 12:26:38.720 | INFO     | __main__:train:126 - epoch = 6 train_loss = 3.4103 valid_loss = 4.0404 valid_bleu = 1.05
 2026-05-09 12:26:40.100 | INFO     | __main__:train:68 - Epoch 7 / 10
+inference BLEU Score: 0.03

@@ -12,7 +12,7 @@ train:
     hidden_dim: 768
     batch_size: 256
     max_length: 50
-  model_architecture: "Seq2Seq-with-RNN"
+  model_architecture: "Seq2Seq-with-GRU"
 
 inference:
   max_length: 50
