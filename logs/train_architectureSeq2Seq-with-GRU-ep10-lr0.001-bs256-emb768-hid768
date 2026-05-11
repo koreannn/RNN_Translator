@@ -79,3 +79,28 @@ inference BLEU Score: 5.97
 
 
 # 사전 학습된 임베딩 레이어 사용 + 낮은 lr (임베딩 레이어에 낮은 lr 사용)
+2026-05-11 11:38:19.255 | INFO     | __main__:<module>:177 - device: cuda
+2026-05-11 11:38:21.694 | INFO     | __main__:train:74 - Epoch 1 / 10
+2026-05-11 11:51:42.903 | INFO     | __main__:train:132 - epoch = 1 train_loss = 3.7441 valid_loss = 3.3339 valid_bleu = 2.09
+2026-05-11 11:51:45.564 | INFO     | __main__:save_checkpoint:60 - Best updated in epoch 1.
+2026-05-11 11:51:45.565 | INFO     | __main__:train:74 - Epoch 2 / 10
+2026-05-11 12:05:08.322 | INFO     | __main__:train:132 - epoch = 2 train_loss = 2.9048 valid_loss = 3.0920 valid_bleu = 2.65
+2026-05-11 12:05:11.148 | INFO     | __main__:save_checkpoint:60 - Best updated in epoch 2.
+2026-05-11 12:05:11.149 | INFO     | __main__:train:74 - Epoch 3 / 10
+2026-05-11 12:18:36.047 | INFO     | __main__:train:132 - epoch = 3 train_loss = 2.6149 valid_loss = 3.0314 valid_bleu = 2.77
+2026-05-11 12:18:38.889 | INFO     | __main__:save_checkpoint:60 - Best updated in epoch 3.
+2026-05-11 12:18:38.890 | INFO     | __main__:train:74 - Epoch 4 / 10
+2026-05-11 12:32:06.321 | INFO     | __main__:train:132 - epoch = 4 train_loss = 2.4346 valid_loss = 3.0271 valid_bleu = 2.73
+2026-05-11 12:32:08.956 | INFO     | __main__:save_checkpoint:60 - Best updated in epoch 4.
+2026-05-11 12:32:08.956 | INFO     | __main__:train:74 - Epoch 5 / 10
+2026-05-11 12:45:35.403 | INFO     | __main__:train:132 - epoch = 5 train_loss = 2.3036 valid_loss = 3.0404 valid_bleu = 2.92
+2026-05-11 12:45:36.850 | INFO     | __main__:train:74 - Epoch 6 / 10
+2026-05-11 12:59:01.689 | INFO     | __main__:train:132 - epoch = 6 train_loss = 2.2019 valid_loss = 3.0653 valid_bleu = 2.96
+2026-05-11 12:59:02.861 | INFO     | __main__:train:74 - Epoch 7 / 10
+2026-05-11 13:12:27.986 | INFO     | __main__:train:132 - epoch = 7 train_loss = 2.1188 valid_loss = 3.1025 valid_bleu = 2.66
+2026-05-11 13:12:29.412 | INFO     | __main__:train:74 - Epoch 8 / 10
+2026-05-11 13:25:53.418 | INFO     | __main__:train:132 - epoch = 8 train_loss = 2.0489 valid_loss = 3.1501 valid_bleu = 2.85
+2026-05-11 13:25:54.857 | INFO     | __main__:train:74 - Epoch 9 / 10
+2026-05-11 13:39:19.422 | INFO     | __main__:train:132 - epoch = 9 train_loss = 1.9890 valid_loss = 3.1686 valid_bleu = 2.75
+2026-05-11 13:39:20.856 | INFO     | __main__:train:74 - Epoch 10 / 10
+2026-05-11 13:52:46.629 | INFO     | __main__:train:132 - epoch = 10 train_loss = 1.9370 valid_loss = 3.2339 valid_bleu = 2.73
