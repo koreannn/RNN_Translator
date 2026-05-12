@@ -104,3 +104,4 @@ inference BLEU Score: 5.97
 2026-05-11 13:39:19.422 | INFO     | __main__:train:132 - epoch = 9 train_loss = 1.9890 valid_loss = 3.1686 valid_bleu = 2.75
 2026-05-11 13:39:20.856 | INFO     | __main__:train:74 - Epoch 10 / 10
 2026-05-11 13:52:46.629 | INFO     | __main__:train:132 - epoch = 10 train_loss = 1.9370 valid_loss = 3.2339 valid_bleu = 2.73
+inference BLEU Score: 6.70

@@ -91,10 +91,10 @@ class CustomDataLoader:
         test_dataloader = DataLoader(
             self.test_data,
             batch_size = self.batch_size,
-            shuffle = True,
+            shuffle = False,
             num_workers = 1,
             collate_fn = self._collate_fn,
-            drop_last = True,
+            drop_last = False,
             pin_memory = torch.cuda.is_available(),
         )
         return train_dataloader, valid_dataloader, test_dataloader
