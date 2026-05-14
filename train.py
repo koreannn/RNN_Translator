@@ -24,13 +24,14 @@ def train(
     wandb_entity, wandb_project, wandb_architecture,
     checkpoint_dir = "checkpoints",
 ):
-    optimizer = Adam([
-        {"params": seq2seq_model.encoder.embedding.parameters(), "lr": 1e-5},
-        {"params": seq2seq_model.decoder.embedding.parameters(), "lr": 1e-5},
-        {"params": seq2seq_model.encoder.rnn.parameters(), "lr": 1e-3},
-        {"params": seq2seq_model.decoder.rnn.parameters(), "lr": 1e-3},
-        {"params": seq2seq_model.decoder.fc.parameters(), "lr": 1e-3},
-    ])
+    # optimizer = Adam([
+    #     {"params": seq2seq_model.encoder.embedding.parameters(), "lr": 1e-5},
+    #     {"params": seq2seq_model.decoder.embedding.parameters(), "lr": 1e-5},
+    #     {"params": seq2seq_model.encoder.rnn.parameters(), "lr": 1e-3},
+    #     {"params": seq2seq_model.decoder.rnn.parameters(), "lr": 1e-3},
+    #     {"params": seq2seq_model.decoder.fc.parameters(), "lr": 1e-3},
+    # ])
+    optimizer = Adam(seq2seq_model.parameters(), lr = lr)
     checkpoint_dir = Path(checkpoint_dir)
     best_valid_loss = float("inf")
     pad_token_id = 0
@@ -169,7 +170,7 @@ if __name__ == "__main__":
     wandb_exp_name = f"architecture{model_architecture}-ep{epochs}-lr{learning_rate}-bs{batch_size}-emb{embedding_dim}-hid{hidden_dim}" # 실험 로그 네이밍 컨벤션: <모델구조(이름 및 특징)-주요변수(hp)-그외특징>
     
     # 로그 기록
-    logger.add(f"logs/train_{wandb_exp_name}", encoding = "utf-8")
+    logger.add(f"logs/{wandb_exp_name}", encoding = "utf-8")
     
     data_loader = CustomDataLoader(kor_tokenizer, en_tokenizer, max_length = max_length, batch_size = batch_size)
     train_dataloader, valid_dataloader, _ = data_loader.get_data_loader()
