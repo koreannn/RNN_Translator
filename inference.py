@@ -116,23 +116,25 @@ def beam_search(
             dec_inputs = [torch.tensor([[sos_token_id]], dtype = torch.long, device = device) for _ in range(beam_size)]
             beam_scores = [0.0 for _ in range(beam_size)]
             
-            for _ in range(max_new_tokens):
+            for time_step in range(max_new_tokens):
                 all_candidates = []
                 
                 for i in range(beam_size):
                     logits, new_hidden = model.decoder(dec_inputs[i], dec_hiddens[i])
                     log_probs = torch.log_softmax(logits[:, -1, :], dim = -1) # (1, vocab_size)
                     
-                    if _ == 0 and i == 0:
-                        top10 = torch.topk(log_probs, 10)
-                        logger.info(f"상위 10개 log_prob: {top10.values}")
+                    if i == 0: # 누적 확률 찍어보기
+                        top4 = torch.topk(log_probs, beam_size)
+                        logger.info(f"step={time_step} beam=0 scores={[f'{v:.3f}' for v in top4.values[0].tolist()]}")
+                        
                     topk_log_probs, topk_ids = torch.topk(log_probs, beam_size)
                     
                     for j in range(beam_size):
                         new_score = beam_scores[i] + topk_log_probs[0, j].item()
                         new_seq = generated_ids[i] + [topk_ids[0, j].item()]
                         all_candidates.append((new_score, new_seq, new_hidden.clone()))
-
+                        
+                    # logger.info(f"step={step} beam_scores={[f'{s:.3f}' for s in beam_scores]}")
                 all_candidates.sort(key = lambda x: x[0], reverse = True)
                 top_k = all_candidates[:beam_size]
                 
