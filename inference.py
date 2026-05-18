@@ -112,6 +112,30 @@ def beam_search(
         with torch.no_grad():
             src_ids = src_ids.to(device)
             _, enc_hidden = model.encoder(src_ids)
+            
+            beams = [(0.0, [sos_token_id], enc_hidden)] # (누적 로그 확률, 토큰 리스트, hidden state)
+            completed_beams = []
+            
+            for time_step in range(max_new_tokens):
+                all_candidates = []
+                
+                for score, seq, hidden in beams:
+                    if seq[-1] == eos_token_id:
+                        completed_beams.append((score, seq))
+                        continue
+                    
+                    # 마지막 토큰을 입력으로 사용
+                    dec_input = torch.tensor([[seq[-1]]], dtype = torch.long, device = device)
+                    logits, new_hidden = model.decoder(dec_input, hidden)
+                    log_probs = torch.log_softmax(logits[:, -1, :], dim = -1)
+                    
+                    topk_log_probs, topk_ids = torch.topk(log_probs, beam_size)
+                    
+                    for j in range(beam_size):
+                        next_score = score + topk_log_probs[0, j].item()
+                        next_seq = seq + [topk_ids[0, j].item()]
+                        all_candidates.append((next_score, next_seq, new_hidden))
+            
             dec_hiddens = [enc_hidden.clone() for _ in range(beam_size)]
             dec_inputs = [torch.tensor([[sos_token_id]], dtype = torch.long, device = device) for _ in range(beam_size)]
             beam_scores = [0.0 for _ in range(beam_size)]
@@ -134,27 +158,34 @@ def beam_search(
                         new_seq = generated_ids[i] + [topk_ids[0, j].item()]
                         all_candidates.append((new_score, new_seq, new_hidden.clone()))
                         
-                    # logger.info(f"step={step} beam_scores={[f'{s:.3f}' for s in beam_scores]}")
-                all_candidates.sort(key = lambda x: x[0], reverse = True)
-                top_k = all_candidates[:beam_size]
                 
-                beam_scores = [c[0] for c in top_k] # 누적 점수
-                generated_ids = [c[1] for c in top_k] # 시퀀스
-                dec_hiddens = [c[2] for c in top_k] # hidden state
-                dec_inputs = [torch.tensor([[c[1][-1]]], dtype = torch.long, device = device) for c in top_k]
-                
-                if all(seq[-1] == eos_token_id for seq in generated_ids):
+                # 살아남은 가설이 없거나, 완료된 빔이 충분히 쌓였다면 루프 종료 조건 검사
+                if not all_candidates:
                     break
+                    
+                # 전체 후보군 중 상위 beam_size 개 선택
+                all_candidates.sort(key=lambda x: x[0], reverse=True)
+                beams = all_candidates[:beam_size]
                 
-            translatedes = [en_tokenizer.decode(generated_id, skip_special_tokens = True).strip() for generated_id in generated_ids]
+                # 효율적인 종료를 위해 완료된 빔과 합쳐서 상위 K개가 모두 완료 상태이면 조기 종료
+                temp_all = completed_beams + [(b[0], b[1]) for b in beams]
+                temp_all.sort(key=lambda x: x[0], reverse=True)
+                if len(completed_beams) >= beam_size and temp_all[beam_size-1] in completed_beams:
+                    break
             
-            # BLEU
-            ground_truth = en_tokenizer.decode(tgt_label[0].tolist(), skip_special_tokens = True).strip()
-            all_yhat.append(translatedes[0])
+            # 최종 후보 취합 (완료된 빔 + 미완료 빔)
+            final_beams = completed_beams + [(b[0], b[1]) for b in beams]
+            final_beams.sort(key=lambda x: x[0], reverse=True)
+            
+            # Top-K 출력 및 저장
+            translatedes = [en_tokenizer.decode(b[1], skip_special_tokens=True).strip() for b in final_beams[:beam_size]]
+            ground_truth = en_tokenizer.decode(tgt_label[0].tolist(), skip_special_tokens=True).strip()
+            
+            all_yhat.append(translatedes[0]) # 가장 확률이 높은 1위 결과 저장
             all_ground_truth.append(ground_truth)
             
-            for i in range(beam_size):
-                logger.info(f"번역된 문장({i + 1}위): {translatedes[i]}")
+            for i in range(min(beam_size, len(translatedes))):
+                logger.info(f"번역된 문장({i + 1}위, Score: {final_beams[i][0]:.3f}): {translatedes[i]}")
     
     bleu_result = sacrebleu.corpus_bleu(all_yhat, [all_ground_truth])
     logger.info(f"Test corpus BLEU 점수: {bleu_result.score:.2f}")
