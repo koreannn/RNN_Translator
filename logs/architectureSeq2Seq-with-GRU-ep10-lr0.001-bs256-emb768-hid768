@@ -50,6 +50,32 @@ inference BLEU Score: 6.55
 2026-05-13 08:08:17.682 | INFO     | __main__:train:133 - epoch = 10 train_loss = 2.1493 valid_loss = 3.6588 valid_bleu = 2.31
 inference BLEU Score: 5.88
 
+# (3)
+2026-05-18 23:05:43.474 | INFO     | __main__:<module>:178 - device: cuda
+2026-05-18 23:05:46.496 | INFO     | __main__:train:75 - Epoch 1 / 10
+2026-05-18 23:23:05.309 | INFO     | __main__:train:133 - epoch = 1 train_loss = 3.5184 valid_loss = 3.3476 valid_bleu = 2.13
+2026-05-18 23:23:06.873 | INFO     | __main__:save_checkpoint:61 - Best updated in epoch 1.
+2026-05-18 23:23:06.874 | INFO     | __main__:train:75 - Epoch 2 / 10
+2026-05-18 23:40:31.200 | INFO     | __main__:train:133 - epoch = 2 train_loss = 2.8580 valid_loss = 3.2786 valid_bleu = 2.40
+2026-05-18 23:40:33.137 | INFO     | __main__:save_checkpoint:61 - Best updated in epoch 2.
+2026-05-18 23:40:33.137 | INFO     | __main__:train:75 - Epoch 3 / 10
+2026-05-18 23:57:55.402 | INFO     | __main__:train:133 - epoch = 3 train_loss = 2.6125 valid_loss = 3.2645 valid_bleu = 2.20
+2026-05-18 23:57:57.444 | INFO     | __main__:save_checkpoint:61 - Best updated in epoch 3.
+2026-05-18 23:57:57.444 | INFO     | __main__:train:75 - Epoch 4 / 10
+2026-05-19 00:15:20.739 | INFO     | __main__:train:133 - epoch = 4 train_loss = 2.4640 valid_loss = 3.3541 valid_bleu = 2.33
+2026-05-19 00:15:21.750 | INFO     | __main__:train:75 - Epoch 5 / 10
+2026-05-19 00:32:42.500 | INFO     | __main__:train:133 - epoch = 5 train_loss = 2.3638 valid_loss = 3.3835 valid_bleu = 2.24
+2026-05-19 00:32:43.526 | INFO     | __main__:train:75 - Epoch 6 / 10
+2026-05-19 00:50:03.871 | INFO     | __main__:train:133 - epoch = 6 train_loss = 2.2926 valid_loss = 3.4605 valid_bleu = 2.24
+2026-05-19 00:50:04.889 | INFO     | __main__:train:75 - Epoch 7 / 10
+2026-05-19 01:07:24.976 | INFO     | __main__:train:133 - epoch = 7 train_loss = 2.2386 valid_loss = 3.4679 valid_bleu = 2.41
+2026-05-19 01:07:26.002 | INFO     | __main__:train:75 - Epoch 8 / 10
+2026-05-19 01:24:47.149 | INFO     | __main__:train:133 - epoch = 8 train_loss = 2.1978 valid_loss = 3.5443 valid_bleu = 2.15
+2026-05-19 01:24:48.166 | INFO     | __main__:train:75 - Epoch 9 / 10
+2026-05-19 01:42:07.892 | INFO     | __main__:train:133 - epoch = 9 train_loss = 2.1660 valid_loss = 3.5937 valid_bleu = 2.47
+2026-05-19 01:42:08.917 | INFO     | __main__:train:75 - Epoch 10 / 10
+2026-05-19 01:59:29.362 | INFO     | __main__:train:133 - epoch = 10 train_loss = 2.1426 valid_loss = 3.6228 valid_bleu = 2.15
+
 # 사전학습된 임베딩 레이어 사용 + Fine Tuning
 2026-05-10 10:23:05.222 | INFO     | __main__:<module>:171 - device: cuda
 2026-05-10 10:23:07.558 | INFO     | __main__:train:68 - Epoch 1 / 10
@@ -132,4 +158,3 @@ inference BLEU Score: 5.97
 2026-05-11 13:52:46.629 | INFO     | __main__:train:132 - epoch = 10 train_loss = 1.9370 valid_loss = 3.2339 valid_bleu = 2.73
 inference BLEU Score: 6.70
 
-# 디코딩 변경(그리디 서치 -> 빔 서치)
