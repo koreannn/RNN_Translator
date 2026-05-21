@@ -158,3 +158,27 @@ inference BLEU Score: 5.97
 2026-05-11 13:52:46.629 | INFO     | __main__:train:132 - epoch = 10 train_loss = 1.9370 valid_loss = 3.2339 valid_bleu = 2.73
 inference BLEU Score: 6.70
 
+2026-05-21 00:48:33.115 | INFO     | __main__:<module>:178 - device: cuda
+2026-05-21 00:48:35.419 | INFO     | __main__:train:75 - Epoch 1 / 10
+2026-05-21 00:59:27.334 | INFO     | __main__:train:133 - epoch = 1 train_loss = 3.5693 valid_loss = 3.1915 valid_bleu = 2.40
+2026-05-21 00:59:29.420 | INFO     | __main__:save_checkpoint:61 - Best updated in epoch 1.
+2026-05-21 00:59:29.421 | INFO     | __main__:train:75 - Epoch 2 / 10
+2026-05-21 01:10:23.911 | INFO     | __main__:train:133 - epoch = 2 train_loss = 2.7355 valid_loss = 3.0517 valid_bleu = 2.74
+2026-05-21 01:10:26.792 | INFO     | __main__:save_checkpoint:61 - Best updated in epoch 2.
+2026-05-21 01:10:26.794 | INFO     | __main__:train:75 - Epoch 3 / 10
+2026-05-21 01:21:20.995 | INFO     | __main__:train:133 - epoch = 3 train_loss = 2.4289 valid_loss = 3.0508 valid_bleu = 3.10
+2026-05-21 01:21:23.845 | INFO     | __main__:save_checkpoint:61 - Best updated in epoch 3.
+2026-05-21 01:21:23.848 | INFO     | __main__:train:75 - Epoch 4 / 10
+2026-05-21 01:32:18.177 | INFO     | __main__:train:133 - epoch = 4 train_loss = 2.2226 valid_loss = 3.0980 valid_bleu = 2.82
+2026-05-21 01:32:19.607 | INFO     | __main__:train:75 - Epoch 5 / 10
+2026-05-21 01:43:14.092 | INFO     | __main__:train:133 - epoch = 5 train_loss = 2.0669 valid_loss = 3.1510 valid_bleu = 2.92
+2026-05-21 01:43:15.395 | INFO     | __main__:train:75 - Epoch 6 / 10
+2026-05-21 01:54:09.109 | INFO     | __main__:train:133 - epoch = 6 train_loss = 1.9453 valid_loss = 3.2131 valid_bleu = 2.75
+2026-05-21 01:54:10.413 | INFO     | __main__:train:75 - Epoch 7 / 10
+2026-05-21 02:05:05.365 | INFO     | __main__:train:133 - epoch = 7 train_loss = 1.8469 valid_loss = 3.3007 valid_bleu = 2.91
+2026-05-21 02:05:06.670 | INFO     | __main__:train:75 - Epoch 8 / 10
+2026-05-21 02:16:01.152 | INFO     | __main__:train:133 - epoch = 8 train_loss = 1.7667 valid_loss = 3.4144 valid_bleu = 2.70
+2026-05-21 02:16:02.466 | INFO     | __main__:train:75 - Epoch 9 / 10
+2026-05-21 02:26:55.811 | INFO     | __main__:train:133 - epoch = 9 train_loss = 1.7007 valid_loss = 3.5113 valid_bleu = 2.62
+2026-05-21 02:26:57.116 | INFO     | __main__:train:75 - Epoch 10 / 10
+2026-05-21 02:37:50.749 | INFO     | __main__:train:133 - epoch = 10 train_loss = 1.6446 valid_loss = 3.5976 valid_bleu = 2.60
