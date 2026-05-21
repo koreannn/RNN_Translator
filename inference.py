@@ -191,6 +191,80 @@ def beam_search(
     return bleu_result.score
 
 
+def hybrid_sampling(
+    model,
+    kor_tokenizer,
+    en_tokenizer,
+    device,
+    test_dataloader,
+    max_length,
+    max_new_tokens = 50,
+    temperature = 0.8,
+    top_k = 50,
+    top_p = 0.9
+):
+    sos_token_id = en_tokenizer.cls_token_id
+    eos_token_id = en_tokenizer.sep_token_id
+    
+    if sos_token_id is None or eos_token_id is None:
+        raise ValueError("영어 토크나이저는 반드시 cls_token과 sep_token이 있어야합니다.")
+    
+    all_yhat = []
+    all_ground_truth = []
+    
+    for idx, (src_ids, _, tgt_label) in enumerate(test_dataloader): # 학습할때는 (src_ids, tgt_input, tgt_label) / 추론 시에는 오직 자신이 만든 토큰으로 다음 토큰을 예측해야함 -> (src_ids, _, _)
+        
+        logger.info(f"번역 전 문장: {kor_tokenizer.decode(src_ids[0].tolist(), skip_special_tokens = True)}")
+        generated_ids = [sos_token_id]
+        with torch.no_grad():
+            src_ids = src_ids.to(device)
+            _, enc_hidden = model.encoder(src_ids)
+            dec_hidden = enc_hidden
+            dec_input = torch.tensor([[sos_token_id]], dtype = torch.long, device = device)
+            
+            for _ in range(max_new_tokens):
+                logits, dec_hidden = model.decoder(dec_input, dec_hidden)
+                next_token_logits = logits[:, -1, :] # 배치 내 모든 hidden 중 마지막 hidden / (bs(1), vocab_size)
+                scaled_logits = next_token_logits / temperature
+                sorted_logits, sorted_indices = torch.sort(scaled_logits, descending = True)
+                
+                top_k_logits = sorted_logits[:top_k]
+                top_k_indices = sorted_indices[:top_k]
+                
+                probs = torch.softmax(top_k_logits, dim = -1)
+                cumulative_probs = torch.cumsum(probs, dim = -1)
+                
+                # 상위 1등 토큰은 누적 확률이 top_p를 넘더라도 무조건 살려두기
+                indices_to_remove = cumulative_probs > top_p
+                indices_to_remove[1:] = indices_to_remove[:-1].clone()
+                indices_to_remove[0] = False
+                
+                probs[indices_to_remove] = 0.0 # top_p에 도달하지 못하는 토큰 확률 0으로 만듬
+                probs = probs / torch.sum(probs) # 다시 확률 합이 1이 되도록 정규화
+                
+                sampled_index = torch.multinomial(probs.view(-1), num_samples = 1)[0].item()
+                next_id = int(top_k_indices[sampled_index].item())
+                
+                generated_ids.append(next_id)
+                if next_id == eos_token_id or len(generated_ids) > max_length:
+                    break
+                
+                dec_input = torch.tensor([[next_id]], dtype = torch.long, device = device)
+            translated = en_tokenizer.decode(generated_ids, skip_special_tokens = True).strip()
+            
+            # BLEU
+            ground_truth = en_tokenizer.decode(tgt_label[0].tolist(), skip_special_tokens = True).strip()
+            all_yhat.append(translated)
+            all_ground_truth.append(ground_truth)
+            
+            logger.info(f"번역된 문장: {translated}")
+    
+    bleu_result = sacrebleu.corpus_bleu(all_yhat, [all_ground_truth])
+    logger.info(f"Test corpus BLEU 점수: {bleu_result.score:.2f}")
+    
+    return bleu_result.score
+
+
 
 if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "mps"
@@ -215,7 +289,7 @@ if __name__ == "__main__":
     dataloader = CustomDataLoader(kor_tokenizer, en_tokenizer, max_length = max_length, batch_size = batch_size)
     _, _, test_dataloader = dataloader.get_data_loader() # test의 데이터로더는 1개씩 들어가도록 고정되어있음
     
-    blue_score = greedy_search(
+    blue_score = hybrid_sampling(
         model,
         kor_tokenizer,
         en_tokenizer,
