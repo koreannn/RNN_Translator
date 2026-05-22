@@ -224,7 +224,7 @@ def hybrid_sampling(
             
             for _ in range(max_new_tokens):
                 logits, dec_hidden = model.decoder(dec_input, dec_hidden)
-                next_token_logits = logits[:, -1, :] # 배치 내 모든 hidden 중 마지막 hidden / (bs(1), vocab_size)
+                next_token_logits = logits[:, -1, :].squeeze(0) # 배치 차원 버림(shape: (vocab_size,))
                 scaled_logits = next_token_logits / temperature
                 sorted_logits, sorted_indices = torch.sort(scaled_logits, descending = True)
                 
@@ -235,9 +235,8 @@ def hybrid_sampling(
                 cumulative_probs = torch.cumsum(probs, dim = -1)
                 
                 # 상위 1등 토큰은 누적 확률이 top_p를 넘더라도 무조건 살려두기
-                indices_to_remove = cumulative_probs > top_p
-                indices_to_remove[1:] = indices_to_remove[:-1].clone()
-                indices_to_remove[0] = False
+                indices_to_remove = (cumulative_probs - probs) > top_p # 제거될 토큰의 리스트(True일 경우 제거 대상)
+                indices_to_remove[0] = False # 첫 번째 토큰은 무조건 남기기
                 
                 probs[indices_to_remove] = 0.0 # top_p에 도달하지 못하는 토큰 확률 0으로 만듬
                 probs = probs / torch.sum(probs) # 다시 확률 합이 1이 되도록 정규화
@@ -250,6 +249,7 @@ def hybrid_sampling(
                     break
                 
                 dec_input = torch.tensor([[next_id]], dtype = torch.long, device = device)
+            
             translated = en_tokenizer.decode(generated_ids, skip_special_tokens = True).strip()
             
             # BLEU

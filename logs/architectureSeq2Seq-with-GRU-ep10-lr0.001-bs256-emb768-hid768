@@ -183,4 +183,4 @@ inference BLEU Score: 6.70
 2026-05-21 02:26:55.811 | INFO     | __main__:train:133 - epoch = 9 train_loss = 1.7007 valid_loss = 3.5113 valid_bleu = 2.62
 2026-05-21 02:26:57.116 | INFO     | __main__:train:75 - Epoch 10 / 10
 2026-05-21 02:37:50.749 | INFO     | __main__:train:133 - epoch = 10 train_loss = 1.6446 valid_loss = 3.5976 valid_bleu = 2.60
-inference BLEU Score: 6.65(greedy search) / 6.49(beam search)
+inference BLEU Score: 6.65(greedy search) / 6.49(beam search) / 5.14(hybrid sampling)
