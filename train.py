@@ -31,7 +31,7 @@ def train(
         {"params": seq2seq_model.decoder.rnn.parameters(), "lr": 1e-3},
         {"params": seq2seq_model.decoder.fc.parameters(), "lr": 1e-3},
     ])
-    optimizer = Adam(seq2seq_model.parameters(), lr = lr)
+    # optimizer = Adam(seq2seq_model.parameters(), lr = lr)
     checkpoint_dir = Path(checkpoint_dir)
     best_valid_loss = float("inf")
     pad_token_id = 0

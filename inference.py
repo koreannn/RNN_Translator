@@ -169,9 +169,9 @@ def beam_search(
                 if seq[-1] != eos_token_id:
                     lp = ((5 + len(seq)) ** alpha) / ((5 + 1) ** alpha)
                     completed_beams.append((score / lp, seq))
-            
             # 최종 정규화 점수 기준으로 정렬
             completed_beams.sort(key=lambda x: x[0], reverse=True)
+            
             
             # 결과 저장 및 출력
             translated_sentences = [en_tokenizer.decode(b[1], skip_special_tokens=True).strip() for b in completed_beams[:beam_size]]
@@ -223,26 +223,32 @@ def hybrid_sampling(
             dec_input = torch.tensor([[sos_token_id]], dtype = torch.long, device = device)
             
             for _ in range(max_new_tokens):
-                logits, dec_hidden = model.decoder(dec_input, dec_hidden)
-                next_token_logits = logits[:, -1, :].squeeze(0) # 배치 차원 버림(shape: (vocab_size,))
+                logits, dec_hidden = model.decoder(dec_input, dec_hidden) # logits.shape() = (bs, seq_len, vocab_size)
+                next_token_logits = logits[:, -1, :].squeeze(0) # 배치 차원 버림(next_token_logits.shape() = (vocab_size,))
                 scaled_logits = next_token_logits / temperature
-                sorted_logits, sorted_indices = torch.sort(scaled_logits, descending = True)
                 
-                top_k_logits = sorted_logits[:top_k]
-                top_k_indices = sorted_indices[:top_k]
+                # 1. Top-K 필터링
+                if top_k > 0:
+                    criteria_logit = torch.topk(scaled_logits, top_k)[0][-1]
+                    indices_to_removed = scaled_logits < criteria_logit
+                    scaled_logits[indices_to_removed] = -float('inf')
                 
-                probs = torch.softmax(top_k_logits, dim = -1)
-                cumulative_probs = torch.cumsum(probs, dim = -1)
-                
-                # 상위 1등 토큰은 누적 확률이 top_p를 넘더라도 무조건 살려두기
-                indices_to_remove = (cumulative_probs - probs) > top_p # 제거될 토큰의 리스트(True일 경우 제거 대상)
-                indices_to_remove[0] = False # 첫 번째 토큰은 무조건 남기기
-                
-                probs[indices_to_remove] = 0.0 # top_p에 도달하지 못하는 토큰 확률 0으로 만듬
-                probs = probs / torch.sum(probs) # 다시 확률 합이 1이 되도록 정규화
-                
-                sampled_index = torch.multinomial(probs.view(-1), num_samples = 1)[0].item()
-                next_id = int(top_k_indices[sampled_index].item())
+                # 2. Top-P 필터링
+                if top_p < 1.0:
+                    sorted_logits, sorted_indices = torch.sort(scaled_logits, descending = True)
+                    sorted_probs = torch.softmax(sorted_logits, dim = -1) # 어차피 1차원 텐서지만 축을 지정해야 경고 메시지가 안뜸
+                    cumulative_probs = torch.cumsum(sorted_probs, dim = -1)
+                    
+                    sorted_indices_to_removed = cumulative_probs > top_p # sorted_indices_to_removed: [False, False, ... , True] (shape: (vocab_size, ))
+                    cloned_sorted_indices_to_removed = sorted_indices_to_removed.clone()
+                    cloned_sorted_indices_to_removed[1:] = sorted_indices_to_removed[:-1]
+                    cloned_sorted_indices_to_removed[0] = False # 맨 첫 번째 토큰은 탈락하지 않도록
+                    
+                    indices_to_removed = sorted_indices[cloned_sorted_indices_to_removed]
+                    scaled_logits[indices_to_removed] = -float('inf')
+                    
+                probs = torch.softmax(scaled_logits, dim = -1)
+                next_id = int(torch.multinomial(probs, num_samples = 1).item())
                 
                 generated_ids.append(next_id)
                 if next_id == eos_token_id or len(generated_ids) > max_length:
@@ -289,7 +295,7 @@ if __name__ == "__main__":
     dataloader = CustomDataLoader(kor_tokenizer, en_tokenizer, max_length = max_length, batch_size = batch_size)
     _, _, test_dataloader = dataloader.get_data_loader() # test의 데이터로더는 1개씩 들어가도록 고정되어있음
     
-    blue_score = hybrid_sampling(
+    blue_score = beam_search(
         model,
         kor_tokenizer,
         en_tokenizer,
