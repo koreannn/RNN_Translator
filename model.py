@@ -9,6 +9,10 @@ class Encoder(nn.Module):
         if pretrained_weight is not None:
             self.embedding.weight.data.copy_(pretrained_weight)
         
+        # # 사전학습된 가중치 Freeze 시킬 때
+        # for param in self.embedding.parameters():
+        #     param.requires_grad = False
+        
         # nn.Embedding을 선언하고, self.embedding을 삽입
         self.rnn = nn.GRU(input_size = embedding_dim, hidden_size = hidden_dim, batch_first = True)
         
@@ -25,6 +29,10 @@ class Decoder(nn.Module):
         
         if pretrained_weight is not None:
             self.embedding.weight.data.copy_(pretrained_weight)
+            
+        # # 사전학습된 가중치 Freeze 시킬 때
+        # for param in self.embedding.parameters():
+        #     param.requires_grad = False
         
         self.rnn = nn.GRU(input_size = embedding_dim, hidden_size = hidden_dim, batch_first = True)
         self.fc = nn.Linear(hidden_dim, vocab_size)

@@ -295,7 +295,7 @@ if __name__ == "__main__":
     dataloader = CustomDataLoader(kor_tokenizer, en_tokenizer, max_length = max_length, batch_size = batch_size)
     _, _, test_dataloader = dataloader.get_data_loader() # test의 데이터로더는 1개씩 들어가도록 고정되어있음
     
-    blue_score = beam_search(
+    blue_score = greedy_search(
         model,
         kor_tokenizer,
         en_tokenizer,

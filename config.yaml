@@ -7,7 +7,7 @@ wandb:
 train:
   h_param:
     learning_rate: 0.001
-    epochs: 10
+    epochs: 7
     embedding_dim: 768 # kor-tokenizer의 임베딩 차원에 맞춰서
     hidden_dim: 768
     batch_size: 256
