@@ -17,6 +17,7 @@ train:
 
 inference:
   max_length: 50
+  max_new_token: 80
   batch_size: 1
 
 model:

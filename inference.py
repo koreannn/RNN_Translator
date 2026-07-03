@@ -279,6 +279,7 @@ if __name__ == "__main__":
     config = load_config("config.yaml")
     # h_param
     max_length = config["inference"]["max_length"]
+    max_n_token = config["inference"]["max_new_token"]
     batch_size = config["inference"]["batch_size"]
     
     kor_tokenizer = AutoTokenizer.from_pretrained("klue/bert-base")
@@ -295,14 +296,14 @@ if __name__ == "__main__":
     dataloader = CustomDataLoader(kor_tokenizer, en_tokenizer, max_length = max_length, batch_size = batch_size)
     _, _, test_dataloader = dataloader.get_data_loader() # test의 데이터로더는 1개씩 들어가도록 고정되어있음
     
-    blue_score = greedy_search(
+    blue_score = hybrid_sampling(
         model,
         kor_tokenizer,
         en_tokenizer,
         device,
         test_dataloader,
-        max_length = 50,
-        max_new_tokens = 50,
+        max_length,
+        max_n_token,
     )
     logger.info(f"최종 BLEU Score: {blue_score:.2f}")
     
