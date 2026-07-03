@@ -18,7 +18,7 @@ from utils import load_config
 def train(
     epochs, lr, batch_size, embedding_dim, hidden_dim,
     train_loader, valid_loader,
-    kor_vocab_size, en_vocab_size, en_tokenizer,
+    kor_vocab_size, en_vocab_size, en_tokenizer, max_new_token,
     encoder, decoder, seq2seq_model,
     device, wandb_project_name,
     wandb_entity, wandb_project, wandb_architecture,
@@ -94,7 +94,11 @@ def train(
 
         train_avg_loss = train_loss_sum / max(1, train_steps)
 
+        # Validation Loss & Validation BLEU
         seq2seq_model.eval()
+        sos_token_id= en_tokenizer.cls_token_id
+        eos_token_id = en_tokenizer.sep_token_id
+        max_n_token = max_new_token # 새로 생성할 토큰의 최대 개수
         valid_loss_sum = 0.0
         valid_steps = 0
         
@@ -117,9 +121,23 @@ def train(
                 valid_steps += 1
                 
                 # BLEU 집계
-                pred_ids = torch.argmax(logits, dim = -1) # (bs, seq_len)
-                for i in range(pred_ids.size(0)):
-                    hyp = en_tokenizer.decode(pred_ids[i].tolist(), skip_special_tokens = True).strip()
+                
+                _, enc_hidden = seq2seq_model.encoder(src_ids)
+                for i in range(src_ids.size(0)):
+                    dec_hidden = enc_hidden[:, i:i + 1, :]
+                    dec_input = torch.tensor([[sos_token_id]], device = device)
+                    
+                    generated_ids = [sos_token_id]
+                    
+                    for _ in range(max_n_token):
+                        logits_step, dec_hidden = seq2seq_model.decoder(dec_input, dec_hidden)
+                        next_id = int(torch.argmax(logits_step[:, -1, :], dim = -1).item())
+                        generated_ids.append(next_id)
+                        if next_id == eos_token_id:
+                            break
+                        dec_input = torch.tensor([[next_id]], device = device)
+                        
+                    hyp = en_tokenizer.decode(generated_ids, skip_special_tokens = True).strip()
                     ref = en_tokenizer.decode(tgt_label[i].tolist(), skip_special_tokens = True).strip()
                     all_yhat.append(hyp)
                     all_ground_truth.append(ref)
@@ -150,7 +168,8 @@ if __name__ == "__main__":
     batch_size = config["train"]["h_param"]["batch_size"]
     embedding_dim = config["train"]["h_param"]["embedding_dim"]
     hidden_dim = config["train"]["h_param"]["hidden_dim"]
-    max_length = config["train"]["h_param"]["max_length"]
+    max_length = config["train"]["h_param"]["max_length"] # 생성 시퀀스가 이 길이를 초과할 경우 강제 종료
+    max_new_token = config["train"]["h_param"]["max_new_token"] # 새로 생성할 토큰 개수의 상한선
 
     # tokenizer
     kor_tokenizer_name = config["model"]["kor_tokenizer"]
@@ -191,6 +210,7 @@ if __name__ == "__main__":
         kor_vocab_size = kor_vocab_size,
         en_vocab_size = en_vocab_size,
         en_tokenizer = en_tokenizer,
+        max_new_token = max_new_token,
         encoder = encoder,
         decoder = decoder,
         seq2seq_model = seq2seq,

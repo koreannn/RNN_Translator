@@ -225,7 +225,18 @@ inference BLEU Score: 6.70(greedy search) / 7.11(beam search) / 4.18(hybrid samp
 2026-05-21 02:26:55.811 | INFO     | __main__:train:133 - epoch = 9 train_loss = 1.7007 valid_loss = 3.5113 valid_bleu = 2.62
 2026-05-21 02:26:57.116 | INFO     | __main__:train:75 - Epoch 10 / 10
 2026-05-21 02:37:50.749 | INFO     | __main__:train:133 - epoch = 10 train_loss = 1.6446 valid_loss = 3.5976 valid_bleu = 2.60
+<<<<<<< HEAD
 inference BLEU Score: 6.65(greedy search) / 6.49(beam search) / 5.14(hybrid sampling)
 
 
 
+=======
+inference BLEU Score: 6.65(greedy search) / 6.49(beam search) / 5.14(hybrid sampling)2026-06-19 14:51:19.722 | INFO     | __main__:<module>:178 - device: mps
+2026-06-19 14:51:24.711 | INFO     | __main__:train:75 - Epoch 1 / 10
+2026-06-19 16:03:05.700 | INFO     | __main__:train:133 - epoch = 1 train_loss = 3.5782 valid_loss = 3.2219 valid_bleu = 2.37
+2026-06-19 16:03:08.596 | INFO     | __main__:save_checkpoint:61 - Best updated in epoch 1.
+2026-06-19 16:03:08.597 | INFO     | __main__:train:75 - Epoch 2 / 10
+2026-06-19 19:22:38.906 | INFO     | __main__:train:133 - epoch = 2 train_loss = 2.7465 valid_loss = 3.0592 valid_bleu = 2.75
+2026-06-19 19:22:41.778 | INFO     | __main__:save_checkpoint:61 - Best updated in epoch 2.
+2026-06-19 19:22:41.779 | INFO     | __main__:train:75 - Epoch 3 / 10
+>>>>>>> a0ed74c (feat:validation BLEU집계 수정)
