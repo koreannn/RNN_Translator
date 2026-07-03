@@ -1,10 +1,12 @@
 """
 한국어 -> 영어 번역기
 """
+import random
 import torch
 import torch.nn.functional as F
 import wandb
 import sacrebleu
+import numpy as np
 
 from pathlib import Path
 from transformers import AutoTokenizer, AutoModel
@@ -42,8 +44,8 @@ def train(
             "epoch": epoch,
             "train_loss": train_loss,
             "valid_loss": valid_loss,
-            "encoder_state_dict": encoder.state_dict(),
-            "decoder_state_dict": decoder.state_dict(),
+            # "encoder_state_dict": encoder.state_dict(), 
+            # "decoder_state_dict": decoder.state_dict(), -> seq2seq_state_dict에 중복
             "seq2seq_state_dict": seq2seq_model.state_dict(),
             "optimizer_state_dict": optimizer.state_dict(),
             "embedding_dim": embedding_dim,
@@ -70,6 +72,9 @@ def train(
         }
     )
 
+    sos_token_id= en_tokenizer.cls_token_id
+    eos_token_id = en_tokenizer.sep_token_id
+    max_n_token = max_new_token # 새로 생성할 토큰의 최대 개수
     for epoch in range(epochs):
         logger.info(f"Epoch {epoch + 1} / {epochs}")
         seq2seq_model.train()
@@ -96,9 +101,6 @@ def train(
 
         # Validation Loss & Validation BLEU
         seq2seq_model.eval()
-        sos_token_id= en_tokenizer.cls_token_id
-        eos_token_id = en_tokenizer.sep_token_id
-        max_n_token = max_new_token # 새로 생성할 토큰의 최대 개수
         valid_loss_sum = 0.0
         valid_steps = 0
         
@@ -160,6 +162,13 @@ def train(
 if __name__ == "__main__":
     config = load_config("config.yaml")
     device = "cuda" if torch.cuda.is_available() else "mps"
+
+    # 난수 고정
+    random.seed(123)
+    np.random.seed(123)
+    torch.manual_seed(123)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
     # h_param
     model_architecture = config["train"]["model_architecture"]

@@ -1,0 +1,4 @@
+2026-07-03 15:24:07.484 | INFO     | __main__:<module>:196 - device: mps
+2026-07-03 15:24:10.883 | INFO     | __main__:train:74 - Epoch 1 / 7
+2026-07-03 15:26:35.514 | INFO     | __main__:<module>:196 - device: mps
+2026-07-03 15:26:38.506 | INFO     | __main__:train:74 - Epoch 1 / 7

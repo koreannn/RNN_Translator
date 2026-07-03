@@ -81,7 +81,7 @@ class CustomDataLoader:
         valid_dataloader = DataLoader(
             self.valid_data,
             batch_size = self.batch_size,
-            shuffle = True,
+            shuffle = False,
             num_workers = 1,
             collate_fn = self._collate_fn,
             drop_last = True,
