@@ -17,4 +17,4 @@
 2026-07-03 08:08:32.606 | INFO     | __main__:train:152 - epoch = 6 train_loss = 2.2122 valid_loss = 3.0701 valid_bleu = 8.52
 2026-07-03 08:08:33.910 | INFO     | __main__:train:79 - Epoch 7 / 7
 2026-07-03 08:19:38.700 | INFO     | __main__:train:152 - epoch = 7 train_loss = 2.1286 valid_loss = 3.1127 valid_bleu = 8.47
-greedy search: 6.52 / beam search: / hybrid sampling: 3.98
+greedy search: 6.52 / beam search: 6.82 / hybrid sampling: 4.xx (초반)
