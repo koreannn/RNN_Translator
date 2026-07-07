@@ -316,7 +316,7 @@ if __name__ == "__main__":
     _, _, test_dataloader = dataloader.get_data_loader() # test의 데이터로더는 1개씩 들어가도록 고정되어있음
     
     start_time = time.time()
-    # # greedy search
+    # greedy search
     # blue_score = greedy_search(
     #     model,
     #     kor_tokenizer,
@@ -324,6 +324,19 @@ if __name__ == "__main__":
     #     device,
     #     test_dataloader,
     #     max_length,
+    # )
+    
+    # # beam_search
+    # blue_score = beam_search(
+    #     model,
+    #     kor_tokenizer,
+    #     en_tokenizer,
+    #     device,
+    #     test_dataloader,
+    #     max_length,
+    #     beam_size = 4,
+    #     max_new_tokens = max_n_token,
+    #     alpha = 0.6,
     # )
     
     # hybrid sampling
@@ -339,20 +352,6 @@ if __name__ == "__main__":
         top_k = 50,
         top_p = 0.9,
     )
-    
-    
-    # # beam_search
-    # blue_score = beam_search(
-    #     model,
-    #     kor_tokenizer,
-    #     en_tokenizer,
-    #     device,
-    #     test_dataloader,
-    #     max_length,
-    #     beam_size = 4,
-    #     max_new_tokens = max_n_token,
-    #     alpha = 0.6,
-    # )
     
     elapsed = time.time() - start_time
     logger.info(f"최종 BLEU Score: {blue_score:.2f}")   
