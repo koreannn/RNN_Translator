@@ -3,6 +3,7 @@
 *.xlsx
 data
 *.out
+*.png
 
 checkpoints
 *.env

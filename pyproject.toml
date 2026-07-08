@@ -7,24 +7,20 @@ requires-python = ">=3.11, <3.14"
 dependencies = [
     # 딥러닝 코어
     "torch>=2.5.1",
-
     # HuggingFace 관련
     "transformers>=4.57.0",
     "datasets>=4.8.2",
-
     # 학습 모니터링
     "wandb>=0.25.0",
-
     # 평가 지표
     "sacrebleu>=2.6.0",
-
     # 유틸
     "pyyaml>=6.0.3",
     "loguru>=0.7.3",
     "pandas>=2.3.3",
-
     # 데모 앱
     "streamlit>=1.52.2",
+    "matplotlib>=3.11.0",
 ]
 
 [tool.uv]
