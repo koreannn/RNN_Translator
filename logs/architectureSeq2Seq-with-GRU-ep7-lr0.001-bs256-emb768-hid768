@@ -97,3 +97,28 @@ greedy search: 6.16 / beam search: 5.93 / hybrid sampling: 4.xx (초반)2026-07-
 2026-07-08 06:41:07.458 | INFO     | __main__:train:152 - epoch = 6 train_loss = 2.2122 valid_loss = 3.0701 valid_bleu = 8.52
 2026-07-08 06:41:09.063 | INFO     | __main__:train:79 - Epoch 7 / 7
 2026-07-08 06:52:27.101 | INFO     | __main__:train:152 - epoch = 7 train_loss = 2.1286 valid_loss = 3.1127 valid_bleu = 8.47
+2026-07-09 07:13:20.484 | INFO     | __main__:<module>:206 - device: cuda
+
+2026-07-09 07:51:31.025 | INFO     | __main__:<module>:206 - device: cuda
+2026-07-09 07:51:33.593 | INFO     | __main__:train:80 - Epoch 1 / 7
+2026-07-09 08:32:15.339 | INFO     | __main__:train:153 - epoch = 1 train_loss = 4.3554 valid_loss = 3.9937 valid_bleu = 6.38
+2026-07-09 08:32:18.193 | INFO     | __main__:save_checkpoint:63 - Best updated in epoch 1.
+2026-07-09 08:32:18.194 | INFO     | __main__:train:80 - Epoch 2 / 7
+2026-07-09 09:12:46.817 | INFO     | __main__:train:153 - epoch = 2 train_loss = 3.4178 valid_loss = 3.6148 valid_bleu = 8.66
+2026-07-09 09:12:49.286 | INFO     | __main__:save_checkpoint:63 - Best updated in epoch 2.
+2026-07-09 09:12:49.287 | INFO     | __main__:train:80 - Epoch 3 / 7
+2026-07-09 09:53:38.771 | INFO     | __main__:train:153 - epoch = 3 train_loss = 3.1236 valid_loss = 3.4540 valid_bleu = 9.95
+2026-07-09 09:53:41.635 | INFO     | __main__:save_checkpoint:63 - Best updated in epoch 3.
+2026-07-09 09:53:41.637 | INFO     | __main__:train:80 - Epoch 4 / 7
+2026-07-09 10:34:51.671 | INFO     | __main__:train:153 - epoch = 4 train_loss = 2.9505 valid_loss = 3.3687 valid_bleu = 10.51
+2026-07-09 10:34:54.616 | INFO     | __main__:save_checkpoint:63 - Best updated in epoch 4.
+2026-07-09 10:34:54.618 | INFO     | __main__:train:80 - Epoch 5 / 7
+2026-07-09 11:16:01.685 | INFO     | __main__:train:153 - epoch = 5 train_loss = 2.8305 valid_loss = 3.3276 valid_bleu = 11.17
+2026-07-09 11:16:05.248 | INFO     | __main__:save_checkpoint:63 - Best updated in epoch 5.
+2026-07-09 11:16:05.250 | INFO     | __main__:train:80 - Epoch 6 / 7
+2026-07-09 11:57:26.791 | INFO     | __main__:train:153 - epoch = 6 train_loss = 2.7395 valid_loss = 3.2997 valid_bleu = 11.43
+2026-07-09 11:57:29.756 | INFO     | __main__:save_checkpoint:63 - Best updated in epoch 6.
+2026-07-09 11:57:29.757 | INFO     | __main__:train:80 - Epoch 7 / 7
+2026-07-09 12:39:00.056 | INFO     | __main__:train:153 - epoch = 7 train_loss = 2.6664 valid_loss = 3.2960 valid_bleu = 11.59
+2026-07-09 12:39:03.556 | INFO     | __main__:save_checkpoint:63 - Best updated in epoch 7.
+2026-07-09 12:39:03.561 | INFO     | __main__:<module>:235 - 학습 소요 시간: 17251.33초
