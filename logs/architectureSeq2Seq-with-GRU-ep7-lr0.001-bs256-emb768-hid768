@@ -77,4 +77,23 @@ greedy search: 6.84 / beam search: 6.46 / hybrid sampling: 4.xx (중반)
 2026-07-07 02:59:30.363 | INFO     | __main__:train:155 - epoch = 6 train_loss = 2.2643 valid_loss = 3.0689 valid_bleu = 8.34
 2026-07-07 02:59:31.132 | INFO     | __main__:train:82 - Epoch 7 / 7
 2026-07-07 03:10:10.553 | INFO     | __main__:train:155 - epoch = 7 train_loss = 2.1888 valid_loss = 3.0987 valid_bleu = 8.41
-greedy search: 6.16 / beam search: 5.93 / hybrid sampling: 4.xx (초반)
+greedy search: 6.16 / beam search: 5.93 / hybrid sampling: 4.xx (초반)2026-07-08 05:32:59.575 | INFO     | __main__:<module>:205 - device: cuda
+
+2026-07-08 05:33:02.999 | INFO     | __main__:train:79 - Epoch 1 / 7
+2026-07-08 05:44:20.340 | INFO     | __main__:train:152 - epoch = 1 train_loss = 3.7552 valid_loss = 3.3462 valid_bleu = 5.99
+2026-07-08 05:44:23.008 | INFO     | __main__:save_checkpoint:62 - Best updated in epoch 1.
+2026-07-08 05:44:23.009 | INFO     | __main__:train:79 - Epoch 2 / 7
+2026-07-08 05:55:42.993 | INFO     | __main__:train:152 - epoch = 2 train_loss = 2.9199 valid_loss = 3.0973 valid_bleu = 7.16
+2026-07-08 05:55:45.875 | INFO     | __main__:save_checkpoint:62 - Best updated in epoch 2.
+2026-07-08 05:55:45.876 | INFO     | __main__:train:79 - Epoch 3 / 7
+2026-07-08 06:07:04.474 | INFO     | __main__:train:152 - epoch = 3 train_loss = 2.6285 valid_loss = 3.0368 valid_bleu = 8.03
+2026-07-08 06:07:07.664 | INFO     | __main__:save_checkpoint:62 - Best updated in epoch 3.
+2026-07-08 06:07:07.665 | INFO     | __main__:train:79 - Epoch 4 / 7
+2026-07-08 06:18:26.924 | INFO     | __main__:train:152 - epoch = 4 train_loss = 2.4464 valid_loss = 3.0276 valid_bleu = 8.54
+2026-07-08 06:18:29.689 | INFO     | __main__:save_checkpoint:62 - Best updated in epoch 4.
+2026-07-08 06:18:29.690 | INFO     | __main__:train:79 - Epoch 5 / 7
+2026-07-08 06:29:47.663 | INFO     | __main__:train:152 - epoch = 5 train_loss = 2.3146 valid_loss = 3.0435 valid_bleu = 8.52
+2026-07-08 06:29:48.988 | INFO     | __main__:train:79 - Epoch 6 / 7
+2026-07-08 06:41:07.458 | INFO     | __main__:train:152 - epoch = 6 train_loss = 2.2122 valid_loss = 3.0701 valid_bleu = 8.52
+2026-07-08 06:41:09.063 | INFO     | __main__:train:79 - Epoch 7 / 7
+2026-07-08 06:52:27.101 | INFO     | __main__:train:152 - epoch = 7 train_loss = 2.1286 valid_loss = 3.1127 valid_bleu = 8.47

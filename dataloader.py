@@ -1,6 +1,6 @@
 import pandas as pd
 import torch
-from torch.utils.data import Dataset, DataLoader, random_split
+from torch.utils.data import Dataset, DataLoader, random_split, ConcatDataset
 from utils import load_config
 from datasets import load_dataset
 
@@ -14,7 +14,9 @@ class TranslationDataset(Dataset):
     
     def __getitem__(self, idx):
         sample = self.data[idx]
-        return sample["translation"]["ko"], sample["translation"]["en"]
+        if "translation" in sample:
+            return sample["translation"]["ko"], sample["translation"]["en"] # "Helsinki-NLP/opus-100" 데이터셋의 스키마
+        return sample["korean"], sample["english"] # "lemon-mint/korean_english_parallel_wiki_augmented_v1" 데이터셋의 스키마
 
 
 class CustomDataLoader:
@@ -22,11 +24,30 @@ class CustomDataLoader:
                 kor_tokenizer, en_tokenizer,
                 max_length, batch_size,
             ):
-        dataset = load_dataset("Helsinki-NLP/opus-100", "en-ko")
         self.config = load_config("config.yaml")
-        self.train_data = TranslationDataset(dataset["train"])
-        self.valid_data = TranslationDataset(dataset["validation"])
-        self.test_data = TranslationDataset(dataset["test"])
+        data_config = self.config["data"]
+        
+        # 1. dataset1
+        dataset1 = load_dataset(data_config["dataset1"], data_config["dataset1_config"])
+        
+        # 2. dataset2
+        dataset2 = load_dataset(data_config["dataset2"])["train"]
+        
+        # 테스트셋 설정
+        dataset2_split = dataset2.train_test_split(
+            test_size = data_config["dataset2_test_ratio"], seed = data_config["data_seed"]
+        )
+        dataset2_train_valid, dataset2_test = dataset2_split["train"], dataset2_split["test"]
+        
+        # 검증셋 설정
+        dataset2_split2 = dataset2_train_valid.train_test_split(
+            test_size = data_config["dataset2_valid_ratio"], seed = data_config["data_seed"]
+        )
+        dataset2_train, dataset2_valid = dataset2_split2["train"], dataset2_split2["test"] # 학습셋, 검증셋, 테스트셋: (dataset2_train, dataset2_valid, dataset2_test)
+        
+        self.train_data = ConcatDataset([TranslationDataset(dataset1["train"]), TranslationDataset(dataset2_train)])
+        self.valid_data = ConcatDataset([TranslationDataset(dataset1["validation"]), TranslationDataset(dataset2_valid)])
+        self.test_data = ConcatDataset([TranslationDataset(dataset1["test"]), TranslationDataset(dataset2_test)])
         
         self.kor_tokenizer = kor_tokenizer
         self.en_tokenizer = en_tokenizer

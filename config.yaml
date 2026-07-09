@@ -3,6 +3,13 @@ wandb:
   wandb_project: "pytorch-rnn-translator"
   wandb_architecture: "Vanila-RNN-Seq2Seq"
   
+data:
+  data_seed: 123
+  dataset1: "Helsinki-NLP/opus-100" # 구어체 위주, 짧은 길이 위주
+  dataset1_config: "en-ko"
+  dataset2: "lemon-mint/korean_english_parallel_wiki_augmented_v1" # 위키피디아 번역문(다양한 도메인 문장, 대부분 길이가 길되 다양한 길이의 문장들이 존재)
+  dataset2_valid_ratio: 0.2
+  dataset2_test_ratio: 0.2
 
 train:
   h_param:

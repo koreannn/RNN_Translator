@@ -1,6 +1,7 @@
 """
 한국어 -> 영어 번역기
 """
+import time
 import random
 import torch
 import torch.nn.functional as F
@@ -208,6 +209,7 @@ if __name__ == "__main__":
     decoder = Decoder(vocab_size = en_vocab_size, embedding_dim = embedding_dim, hidden_dim = hidden_dim, pretrained_weight = en_pretrained_weight).to(device)
     seq2seq = Seq2Seq(encoder, decoder).to(device)
 
+    start_time = time.time()
     train(
         epochs = epochs,
         lr = learning_rate,
@@ -229,3 +231,5 @@ if __name__ == "__main__":
         wandb_architecture = wandb_architecture,
         wandb_project_name = wandb_exp_name,
     )
+    elapsed = time.time() - start_time
+    logger.info(f"학습 소요 시간: {elapsed:.2f}초")
