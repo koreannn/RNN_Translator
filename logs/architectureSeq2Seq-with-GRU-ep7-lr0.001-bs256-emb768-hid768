@@ -122,3 +122,4 @@ greedy search: 6.16 / beam search: 5.93 / hybrid sampling: 4.xx (초반)2026-07-
 2026-07-09 12:39:00.056 | INFO     | __main__:train:153 - epoch = 7 train_loss = 2.6664 valid_loss = 3.2960 valid_bleu = 11.59
 2026-07-09 12:39:03.556 | INFO     | __main__:save_checkpoint:63 - Best updated in epoch 7.
 2026-07-09 12:39:03.561 | INFO     | __main__:<module>:235 - 학습 소요 시간: 17251.33초
+

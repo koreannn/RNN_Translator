@@ -17,7 +17,7 @@ train:
     epochs: 7
     embedding_dim: 768 # kor-tokenizer의 임베딩 차원에 맞춰서
     hidden_dim: 768
-    batch_size: 256
+    batch_size: 32
     max_length: 400
     max_new_token: 400
   model_architecture: "Seq2Seq-with-GRU"
@@ -25,7 +25,7 @@ train:
 inference:
   max_length: 400
   max_new_token: 400
-  batch_size: 256
+  batch_size: 32
   checkpoint_path: "checkpoints/best.pt"
 
 model:
