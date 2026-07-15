@@ -3,9 +3,11 @@ import random
 import torch
 import pandas as pd
 import numpy as np
+import wandb
 import sacrebleu
 
 from loguru import logger
+from pathlib import Path
 from utils import load_config
 from transformers import AutoTokenizer
 from model import Encoder, Decoder, Seq2Seq
@@ -353,6 +355,19 @@ if __name__ == "__main__":
     kor_tokenizer_name = config["model"]["kor_tokenizer"]
     en_tokenizer_name = config["model"]["en_tokenizer"]
     
+    # wandb 세팅
+    wandb.init(
+        entity = config["wandb"]["wandb_entity"],
+        project = config["wandb"]["wandb_project"],
+        name = f"inference-{Path(model_checkpoint_path).stem}",
+        job_type = "inference",
+        config = {
+            "architecture": config["wandb"]["wandb_architecture"],
+            "checkpoint_path": model_checkpoint_path,
+            "batch_size": batch_size,
+        },
+    )
+    
     kor_tokenizer = AutoTokenizer.from_pretrained(kor_tokenizer_name)
     en_tokenizer = AutoTokenizer.from_pretrained(en_tokenizer_name)
 
@@ -368,7 +383,7 @@ if __name__ == "__main__":
     
     start_time = time.time()
     # greedy search
-    blue_score = greedy_search(
+    bleu_score = greedy_search(
         model,
         kor_tokenizer,
         en_tokenizer,
@@ -406,5 +421,13 @@ if __name__ == "__main__":
     # )
     
     elapsed = time.time() - start_time
-    logger.info(f"최종 BLEU Score: {blue_score:.2f}")   
+    
+    wandb.log(
+        {
+            "inference_time_sec": elapsed,
+            "inference_bleu": bleu_score,
+        }
+    )
+    wandb.finish()
+    logger.info(f"최종 BLEU Score: {bleu_score:.2f}")   
     logger.info(f"Total Inference Time: {elapsed:.2f}초")

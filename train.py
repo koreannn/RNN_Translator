@@ -19,7 +19,7 @@ from utils import load_config
 
 
 def train(
-    epochs, lr, batch_size, embedding_dim, hidden_dim,
+    epochs, patience, lr, batch_size, embedding_dim, hidden_dim,
     train_loader, valid_loader,
     kor_vocab_size, en_vocab_size, en_tokenizer, max_new_token,
     encoder, decoder, seq2seq_model,
@@ -36,10 +36,11 @@ def train(
     ])
     checkpoint_dir = Path(checkpoint_dir)
     best_valid_loss = float("inf")
+    epochs_no_improve = 0
     pad_token_id = 0
 
     def save_checkpoint(epoch, train_loss, valid_loss):
-        nonlocal best_valid_loss
+        nonlocal best_valid_loss, epochs_no_improve
         checkpoint_dir.mkdir(parents = True, exist_ok = True)
         payload = {
             "epoch": epoch,
@@ -59,8 +60,11 @@ def train(
 
         if valid_loss < best_valid_loss:
             best_valid_loss = valid_loss
+            epochs_no_improve = 0
             torch.save(payload, checkpoint_dir / "best.pt")
             logger.info(f"Best updated in epoch {epoch + 1}.")
+        else:
+            epochs_no_improve += 1
 
     wandb.init(
         entity = wandb_entity,
@@ -76,7 +80,11 @@ def train(
     sos_token_id= en_tokenizer.cls_token_id
     eos_token_id = en_tokenizer.sep_token_id
     max_n_token = max_new_token # 새로 생성할 토큰의 최대 개수
+    
+    train_start_time = time.time()
+    
     for epoch in range(epochs):
+        epoch_start = time.time()
         logger.info(f"Epoch {epoch + 1} / {epochs}")
         seq2seq_model.train()
         train_loss_sum = 0.0
@@ -151,13 +159,29 @@ def train(
         valid_bleu = bleu_result.score
 
         logger.info(f"epoch = {epoch + 1} train_loss = {train_avg_loss:.4f} valid_loss = {valid_avg_loss:.4f} valid_bleu = {valid_bleu:.2f}")
+        epoch_elapsed = time.time() - epoch_start
         wandb.log({
             "epoch": epoch + 1,
             "train_loss": train_avg_loss,
             "valid_loss": valid_avg_loss,
             "valid_bleu": valid_bleu,
+            "epoch_time_sec": epoch_elapsed,
         })
         save_checkpoint(epoch = epoch, train_loss = train_avg_loss, valid_loss = valid_avg_loss)
+        
+        if epochs_no_improve >= patience:
+            logger.info(f"[Early Stopping] Epoch {epoch + 1}에서 valid loss가 {patience}회 연속으로 개선되지 않아 조기 종료합니다")
+            break
+        
+        # 조기 종료용 에포크 카운트
+        actual_epochs = epoch + 1
+        if actual_epochs != epochs:
+            wandb.run.name = wandb_project_name.replace(f"-ep{epochs}-", f"-ep{actual_epochs}-")
+            wandb.run.save()
+        
+    total_train_time = time.time() - train_start_time
+    wandb.summary["total_train_time_sec"] = total_train_time
+    return actual_epochs # 로그 이름 바꾸기 위한 반환
 
 
 if __name__ == "__main__":
@@ -174,6 +198,7 @@ if __name__ == "__main__":
     # h_param
     model_architecture = config["train"]["model_architecture"]
     epochs = config["train"]["h_param"]["epochs"]
+    patience = config["train"]["h_param"]["patience"] # early stopping용 하이퍼 파라미터
     learning_rate = config["train"]["h_param"]["learning_rate"]
     batch_size = config["train"]["h_param"]["batch_size"]
     embedding_dim = config["train"]["h_param"]["embedding_dim"]
@@ -210,8 +235,9 @@ if __name__ == "__main__":
     seq2seq = Seq2Seq(encoder, decoder).to(device)
 
     start_time = time.time()
-    train(
+    actual_epoch = train(
         epochs = epochs,
+        patience = patience, # 조기 종료용 h param
         lr = learning_rate,
         batch_size = batch_size,
         embedding_dim = embedding_dim,
