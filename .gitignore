@@ -13,6 +13,7 @@ __pycache__
 wandb
 .vscode
 *.log
+logs
 
 
 # uv 가상환경 및 패키지 푸시 방지
