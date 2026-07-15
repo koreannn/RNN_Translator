@@ -16,6 +16,7 @@ train:
   h_param:
     learning_rate: 0.001
     epochs: 7
+    patience: 3 # valid loss가 이 횟수만큼 연속으로 개선되지 않을경우, early stopping
     embedding_dim: 768 # kor-tokenizer의 임베딩 차원에 맞춰서
     hidden_dim: 768
     batch_size: 32

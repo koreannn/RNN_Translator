@@ -1,8 +1,8 @@
 import time
 import random
-import numpy as np
 import torch
 import pandas as pd
+import numpy as np
 import sacrebleu
 
 from loguru import logger
@@ -52,8 +52,9 @@ def greedy_search( # greedy방식으로 하나씩 추론
     if sos_token_id is None or eos_token_id is None:
         raise ValueError("영어 토크나이저는 반드시 cls_token과 sep_token이 있어야합니다.")
     
-    all_yhat = []
-    all_ground_truth = []
+    all_yhat = [] # 번역된 문장 전체를 담고있는 리스트
+    all_ground_truth = [] # 
+    all_source = [] 
     
     for batch_idx, (src_ids, _, tgt_label) in enumerate(test_dataloader): # 학습할때는 (src_ids, tgt_input, tgt_label) / 추론 시에는 오직 자신이 만든 토큰으로 다음 토큰을 예측해야함 -> (src_ids, _, _)
         with torch.no_grad():
@@ -334,14 +335,14 @@ if __name__ == "__main__":
     logger.info(f"device: {device}")
     # logger.add(f"logs/{wandb_exp_name}", encoding = "utf-8")
     config = load_config("config.yaml")
-
+    
     # 난수 고정
     random.seed(config["seed"])
     np.random.seed(config["seed"])
     torch.manual_seed(config["seed"])
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-
+    
     # h_param
     max_length = config["inference"]["max_length"]
     max_n_token = config["inference"]["max_new_token"]
