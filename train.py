@@ -165,9 +165,9 @@ if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "mps"
 
     # 난수 고정
-    random.seed(123)
-    np.random.seed(123)
-    torch.manual_seed(123)
+    random.seed(config["seed"])
+    np.random.seed(config["seed"])
+    torch.manual_seed(config["seed"])
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 

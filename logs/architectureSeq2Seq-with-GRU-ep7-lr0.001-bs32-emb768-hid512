@@ -1,0 +1,23 @@
+2026-07-13 15:59:16.784 | INFO     | __main__:<module>:206 - device: cuda
+2026-07-13 15:59:19.086 | INFO     | __main__:train:80 - Epoch 1 / 7
+2026-07-13 18:42:59.448 | INFO     | __main__:train:153 - epoch = 1 train_loss = 4.8858 valid_loss = 4.3816 valid_bleu = 0.38
+2026-07-13 18:43:01.955 | INFO     | __main__:save_checkpoint:63 - Best updated in epoch 1.
+2026-07-13 18:43:01.956 | INFO     | __main__:train:80 - Epoch 2 / 7
+2026-07-13 21:04:25.035 | INFO     | __main__:train:153 - epoch = 2 train_loss = 4.2290 valid_loss = 4.1872 valid_bleu = 0.61
+2026-07-13 21:04:27.497 | INFO     | __main__:save_checkpoint:63 - Best updated in epoch 2.
+2026-07-13 21:04:27.497 | INFO     | __main__:train:80 - Epoch 3 / 7
+2026-07-13 23:21:25.176 | INFO     | __main__:train:153 - epoch = 3 train_loss = 4.0703 valid_loss = 4.1048 valid_bleu = 1.29
+2026-07-13 23:21:27.798 | INFO     | __main__:save_checkpoint:63 - Best updated in epoch 3.
+2026-07-13 23:21:27.799 | INFO     | __main__:train:80 - Epoch 4 / 7
+2026-07-14 01:35:33.821 | INFO     | __main__:train:153 - epoch = 4 train_loss = 3.9561 valid_loss = 4.0147 valid_bleu = 2.15
+2026-07-14 01:35:36.376 | INFO     | __main__:save_checkpoint:63 - Best updated in epoch 4.
+2026-07-14 01:35:36.377 | INFO     | __main__:train:80 - Epoch 5 / 7
+2026-07-14 03:43:22.802 | INFO     | __main__:train:153 - epoch = 5 train_loss = 3.8478 valid_loss = 3.9405 valid_bleu = 2.83
+2026-07-14 03:43:25.233 | INFO     | __main__:save_checkpoint:63 - Best updated in epoch 5.
+2026-07-14 03:43:25.234 | INFO     | __main__:train:80 - Epoch 6 / 7
+2026-07-14 05:50:02.914 | INFO     | __main__:train:153 - epoch = 6 train_loss = 3.7672 valid_loss = 3.8858 valid_bleu = 3.45
+2026-07-14 05:50:06.307 | INFO     | __main__:save_checkpoint:63 - Best updated in epoch 6.
+2026-07-14 05:50:06.308 | INFO     | __main__:train:80 - Epoch 7 / 7
+2026-07-14 07:52:49.389 | INFO     | __main__:train:153 - epoch = 7 train_loss = 3.7041 valid_loss = 3.8459 valid_bleu = 3.93
+2026-07-14 07:52:52.159 | INFO     | __main__:save_checkpoint:63 - Best updated in epoch 7.
+2026-07-14 07:52:52.181 | INFO     | __main__:<module>:235 - 학습 소요 시간: 57214.40초

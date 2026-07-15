@@ -1,5 +1,6 @@
 import time
 import random
+import numpy as np
 import torch
 import pandas as pd
 import sacrebleu
@@ -42,7 +43,7 @@ def greedy_search( # greedy방식으로 하나씩 추론
     device,
     test_dataloader,
     max_length,
-    max_new_tokens = 50,
+    max_new_tokens,
 ):
     sos_token_id = en_tokenizer.cls_token_id
     eos_token_id = en_tokenizer.sep_token_id
@@ -333,6 +334,14 @@ if __name__ == "__main__":
     logger.info(f"device: {device}")
     # logger.add(f"logs/{wandb_exp_name}", encoding = "utf-8")
     config = load_config("config.yaml")
+
+    # 난수 고정
+    random.seed(config["seed"])
+    np.random.seed(config["seed"])
+    torch.manual_seed(config["seed"])
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
     # h_param
     max_length = config["inference"]["max_length"]
     max_n_token = config["inference"]["max_new_token"]
@@ -365,6 +374,7 @@ if __name__ == "__main__":
         device,
         test_dataloader,
         max_length,
+        max_n_token,
     )
     
     # # beam_search

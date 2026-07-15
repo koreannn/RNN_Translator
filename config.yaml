@@ -1,10 +1,11 @@
+seed: 123
+
 wandb:
   wandb_entity: "koreannn-gangneung-national-university"
   wandb_project: "pytorch-rnn-translator"
   wandb_architecture: "Vanila-RNN-Seq2Seq"
-  
+
 data:
-  data_seed: 123
   dataset1: "Helsinki-NLP/opus-100" # 구어체 위주, 짧은 길이 위주
   dataset1_config: "en-ko"
   dataset2: "lemon-mint/korean_english_parallel_wiki_augmented_v1" # 위키피디아 번역문(다양한 도메인 문장, 대부분 길이가 길되 다양한 길이의 문장들이 존재)
@@ -16,7 +17,7 @@ train:
     learning_rate: 0.001
     epochs: 7
     embedding_dim: 768 # kor-tokenizer의 임베딩 차원에 맞춰서
-    hidden_dim: 256
+    hidden_dim: 768
     batch_size: 32
     max_length: 400
     max_new_token: 400
