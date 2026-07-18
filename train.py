@@ -17,10 +17,39 @@ from dataloader import CustomDataLoader
 from model import Encoder, Decoder, Seq2Seq
 from utils import load_config
 
+def greedy_decode_batch( # valid 배치에 대한 BLEU 집계용
+    seq2seq_model,
+    src_ids,
+    sos_token_id,
+    eos_token_id,
+    pad_token_id,
+    max_new_token,
+    device,
+):
+    _, dec_hidden = seq2seq_model.encoder(src_ids) # (1, bs, hidden)
+    batch_size = src_ids.size(0)
+    
+    dec_input = torch.full((batch_size, 1), sos_token_id, dtype = torch.long, device = device)
+    finished = torch.zeros(batch_size, dtype = torch.bool, device = device) # 배치 내의 각 샘플이 EOS에 도달했는지 체크하기 위한 용도
+    generated = []
+    
+    for _ in range(max_new_token):
+        logits_step, dec_hidden = seq2seq_model.decoder(dec_input, dec_hidden)
+        next_ids = torch.argmax(logits_step[:, -1, :], dim = -1)
+        next_ids = next_ids.masked_fill(finished, pad_token_id)
+        generated.append(next_ids)
+        
+        finished = finished | (next_ids == eos_token_id)
+        if finished.all(): # 배치 내 모든 문장이 EOS에 도달했을 경우
+            break
+        dec_input = next_ids.unsqueeze(1) # (bs, 1)
+        
+    return torch.stack(generated, dim = 1) # (bs, gen_len)
+
 
 def train(
-    epochs, patience, lr, batch_size, embedding_dim, hidden_dim,
-    train_loader, valid_loader,
+    epochs, patience, min_delta, lr, batch_size, embedding_dim, hidden_dim,
+    train_loader, valid_loader, valid_bleu_sample_size,
     kor_vocab_size, en_vocab_size, en_tokenizer, max_new_token,
     encoder, decoder, seq2seq_model,
     device, wandb_project_name,
@@ -58,7 +87,7 @@ def train(
         }
         torch.save(payload, checkpoint_dir / "last.pt")
 
-        if valid_loss < best_valid_loss:
+        if valid_loss < best_valid_loss - min_delta:
             best_valid_loss = valid_loss
             epochs_no_improve = 0
             torch.save(payload, checkpoint_dir / "best.pt")
@@ -131,27 +160,37 @@ def train(
                 valid_loss_sum += loss.item()
                 valid_steps += 1
                 
-                # BLEU 집계
-                
-                _, enc_hidden = seq2seq_model.encoder(src_ids)
-                for i in range(src_ids.size(0)):
-                    dec_hidden = enc_hidden[:, i:i + 1, :]
-                    dec_input = torch.tensor([[sos_token_id]], device = device)
+            for src_ids, _, tgt_label in valid_loader:
+                src_ids = src_ids.to(device)
+                gen_ids = greedy_decode_batch(
+                    seq2seq_model, src_ids,
+                    sos_token_id, eos_token_id, pad_token_id,
+                    max_n_token, device,
+                )
+                all_yhat.extend(s.strip() for s in en_tokenizer.batch_decode(gen_ids, skip_special_tokens = True))
+                all_ground_truth.extend(s.strip() for s in en_tokenizer.batch_decode(tgt_label, skip_special_tokens = True))
+                if len(all_yhat) >= valid_bleu_sample_size:
+                    break
+                # # BLEU 집계
+                # _, enc_hidden = seq2seq_model.encoder(src_ids)
+                # for i in range(src_ids.size(0)):
+                #     dec_hidden = enc_hidden[:, i:i + 1, :]
+                #     dec_input = torch.tensor([[sos_token_id]], device = device)
                     
-                    generated_ids = [sos_token_id]
+                #     generated_ids = [sos_token_id]
                     
-                    for _ in range(max_n_token):
-                        logits_step, dec_hidden = seq2seq_model.decoder(dec_input, dec_hidden)
-                        next_id = int(torch.argmax(logits_step[:, -1, :], dim = -1).item())
-                        generated_ids.append(next_id)
-                        if next_id == eos_token_id:
-                            break
-                        dec_input = torch.tensor([[next_id]], device = device)
+                #     for _ in range(max_n_token):
+                #         logits_step, dec_hidden = seq2seq_model.decoder(dec_input, dec_hidden)
+                #         next_id = int(torch.argmax(logits_step[:, -1, :], dim = -1).item())
+                #         generated_ids.append(next_id)
+                #         if next_id == eos_token_id:
+                #             break
+                #         dec_input = torch.tensor([[next_id]], device = device)
                         
-                    hyp = en_tokenizer.decode(generated_ids, skip_special_tokens = True).strip()
-                    ref = en_tokenizer.decode(tgt_label[i].tolist(), skip_special_tokens = True).strip()
-                    all_yhat.append(hyp)
-                    all_ground_truth.append(ref)
+                #     hyp = en_tokenizer.decode(generated_ids, skip_special_tokens = True).strip()
+                #     ref = en_tokenizer.decode(tgt_label[i].tolist(), skip_special_tokens = True).strip()
+                #     all_yhat.append(hyp)
+                #     all_ground_truth.append(ref)
 
         valid_avg_loss = valid_loss_sum / max(1, valid_steps)
         
@@ -173,11 +212,10 @@ def train(
             logger.info(f"[Early Stopping] Epoch {epoch + 1}에서 valid loss가 {patience}회 연속으로 개선되지 않아 조기 종료합니다")
             break
         
-        # 조기 종료용 에포크 카운트
-        actual_epochs = epoch + 1
-        if actual_epochs != epochs:
-            wandb.run.name = wandb_project_name.replace(f"-ep{epochs}-", f"-ep{actual_epochs}-")
-            wandb.run.save()
+    # 조기 종료용 에포크 카운트
+    actual_epochs = epoch + 1
+    if actual_epochs != epochs:
+        wandb.run.name = wandb_project_name.replace(f"-ep{epochs}-", f"-ep{actual_epochs}-")
         
     total_train_time = time.time() - train_start_time
     wandb.summary["total_train_time_sec"] = total_train_time
@@ -198,13 +236,15 @@ if __name__ == "__main__":
     # h_param
     model_architecture = config["train"]["model_architecture"]
     epochs = config["train"]["h_param"]["epochs"]
-    patience = config["train"]["h_param"]["patience"] # early stopping용 하이퍼 파라미터
     learning_rate = config["train"]["h_param"]["learning_rate"]
     batch_size = config["train"]["h_param"]["batch_size"]
     embedding_dim = config["train"]["h_param"]["embedding_dim"]
     hidden_dim = config["train"]["h_param"]["hidden_dim"]
     max_length = config["train"]["h_param"]["max_length"] # 생성 시퀀스가 이 길이를 초과할 경우 강제 종료
     max_new_token = config["train"]["h_param"]["max_new_token"] # 새로 생성할 토큰 개수의 상한선
+    valid_bleu_sample_size = config["train"]["h_param"]["valid_bleu_sample_size"] # 검증 단계 BLEU 점수 측정 문장 개수
+    patience = config["train"]["h_param"]["early_stopping"]["patience"]
+    min_delta = config["train"]["h_param"]["early_stopping"]["min_delta"]
 
     # tokenizer
     kor_tokenizer_name = config["model"]["kor_tokenizer"]
@@ -244,6 +284,7 @@ if __name__ == "__main__":
         hidden_dim = hidden_dim,
         train_loader = train_dataloader,
         valid_loader = valid_dataloader,
+        valid_bleu_sample_size = valid_bleu_sample_size,
         kor_vocab_size = kor_vocab_size,
         en_vocab_size = en_vocab_size,
         en_tokenizer = en_tokenizer,
