@@ -277,7 +277,8 @@ if __name__ == "__main__":
     start_time = time.time()
     actual_epoch = train(
         epochs = epochs,
-        patience = patience, # 조기 종료용 h param
+        patience = patience, 
+        min_delta = min_delta, # 조기 종료용 h param
         lr = learning_rate,
         batch_size = batch_size,
         embedding_dim = embedding_dim,
