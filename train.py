@@ -105,19 +105,21 @@ def train(
             "architecture": wandb_architecture,
         }
     )
+    wandb.define_metric('train/step')
+    wandb.define_metric('train/grad_norm_*', step_metric = 'train/step')
 
     sos_token_id= en_tokenizer.cls_token_id
     eos_token_id = en_tokenizer.sep_token_id
     max_n_token = max_new_token # 새로 생성할 토큰의 최대 개수
     
     train_start_time = time.time()
-    
+    global_step = 0 # 전체 에포크의 배치 스텝
     for epoch in range(epochs):
         epoch_start = time.time()
         logger.info(f"Epoch {epoch + 1} / {epochs}")
         seq2seq_model.train()
         train_loss_sum = 0.0
-        train_steps = 0
+        train_steps = 0 # 배치의 스텝
 
         for _, (src_ids, tgt_input, tgt_label) in enumerate(train_loader):
             src_ids = src_ids.to(device) # (bs, (한국어)seq_len)
@@ -130,10 +132,23 @@ def train(
             loss = F.cross_entropy(logits_flat, tgt_label_flat, ignore_index = pad_token_id)
             optimizer.zero_grad()
             loss.backward()
+            
+            # Gradient 노름 계측
+            enc_grad_norm = torch.nn.utils.clip_grad_norm_(seq2seq_model.encoder.rnn.parameters(), max_norm = float('inf'))
+            dec_grad_norm = torch.nn.utils.clip_grad_norm_(seq2seq_model.decoder.rnn.parameters(), max_norm = float('inf'))
+            total_grad_norm = torch.nn.utils.clip_grad_norm_(seq2seq_model.parameters(), max_norm = float('inf'))
+            
             optimizer.step()
 
             train_loss_sum += loss.item()
             train_steps += 1
+            global_step += 1
+            wandb.log({
+                'train/step': global_step,
+                'train/grad_norm_total': total_grad_norm.item(),
+                'train/grad_norm_encoder_rnn': enc_grad_norm.item(),
+                'train/grad_norm_decoder_rnn': dec_grad_norm.item(),
+            })
 
         train_avg_loss = train_loss_sum / max(1, train_steps)
 
@@ -273,6 +288,8 @@ if __name__ == "__main__":
     encoder = Encoder(vocab_size = kor_vocab_size, embedding_dim = embedding_dim, hidden_dim = hidden_dim, pretrained_weight = kor_pretrained_weight).to(device)
     decoder = Decoder(vocab_size = en_vocab_size, embedding_dim = embedding_dim, hidden_dim = hidden_dim, pretrained_weight = en_pretrained_weight).to(device)
     seq2seq = Seq2Seq(encoder, decoder).to(device)
+    print(seq2seq.state_dict().keys())
+    breakpoint()
 
     start_time = time.time()
     actual_epoch = train(
