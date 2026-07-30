@@ -288,8 +288,6 @@ if __name__ == "__main__":
     encoder = Encoder(vocab_size = kor_vocab_size, embedding_dim = embedding_dim, hidden_dim = hidden_dim, pretrained_weight = kor_pretrained_weight).to(device)
     decoder = Decoder(vocab_size = en_vocab_size, embedding_dim = embedding_dim, hidden_dim = hidden_dim, pretrained_weight = en_pretrained_weight).to(device)
     seq2seq = Seq2Seq(encoder, decoder).to(device)
-    print(seq2seq.state_dict().keys())
-    breakpoint()
 
     start_time = time.time()
     actual_epoch = train(
