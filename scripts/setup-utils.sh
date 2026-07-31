@@ -16,8 +16,8 @@ WANDB_ENV_FILE=".env"
 
 if [ -f "$WANDB_ENV_FILE" ]; then
     WANDB_API_KEY_VALUE=$(grep -E "^WANDB_API_KEY" "$WANDB_ENV_FILE" | cut -d '=' -f2 | tr -d ' ')
+    log "WandB 로그인 중..."
     if [ -n "$WANDB_API_KEY_VALUE" ]; then
-        log "WandB 로그인 중..."
         wandb login --relogin "$WANDB_API_KEY_VALUE"
         log "WandB 로그인 완료."
     else
