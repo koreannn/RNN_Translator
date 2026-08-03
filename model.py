@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
 
-def _init_gru_orthogonal_xavier(weight_hh: torch.Tensor, hidden_dim: int, method: str) -> None:
+def _init_gru_orthogonal_xavier(rnn: nn.GRU, hidden_dim: int, method: str) -> None:
     for gate in range(3):
-        chunk = weight_hh.data[gate * hidden_dim:(gate + 1) * hidden_dim, :]
+        chunk = rnn.weight_hh_l0.data[gate * hidden_dim:(gate + 1) * hidden_dim, :]
         nn.init.orthogonal_(chunk)
     nn.init.xavier_uniform_(rnn.weight_ih_l0.data)
 
