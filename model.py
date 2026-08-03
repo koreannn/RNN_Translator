@@ -1,22 +1,17 @@
 import torch
 import torch.nn as nn
 
-def _init_weight_hh_per_gate(weight_hh: torch.Tensor, hidden_dim: int, method: str) -> None:
+def _init_gru_orthogonal_xavier(weight_hh: torch.Tensor, hidden_dim: int, method: str) -> None:
     for gate in range(3):
         chunk = weight_hh.data[gate * hidden_dim:(gate + 1) * hidden_dim, :]
-        
-        if method == 'Xavier':
-            nn.init.xavier_uniform_(chunk)
-        elif method == 'Orthogonal':
-            nn.init.orthogonal_(chunk)
+        nn.init.orthogonal_(chunk)
+    nn.init.xavier_uniform_(rnn.weight_ih_l0.data)
 
 def _apply_init_scheme(rnn: nn.GRU, hidden_dim: int, init_scheme: str) -> None:
     if init_scheme == 'default':
         return
-    elif init_scheme == 'Xavier_Whh':
-        _init_weight_hh_per_gate(rnn.weight_hh_l0, hidden_dim, 'Xavier')
-    elif init_scheme == 'Orthogonal_Whh':
-        _init_weight_hh_per_gate(rnn.weight_hh_l0, hidden_dim, 'Orthongonal')
+    elif init_scheme == 'Orthogonal_Xavier':
+        _init_gru_orthogonal_xavier(rnn, hidden_dim)
     else:
         raise ValueError(f"Unknown init_scheme: {init_scheme}")
 
