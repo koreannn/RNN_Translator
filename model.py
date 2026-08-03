@@ -1,8 +1,28 @@
 import torch
 import torch.nn as nn
 
+def _init_weight_hh_per_gate(weight_hh: torch.Tensor, hidden_dim: int, method: str) -> None:
+    for gate in range(3):
+        chunk = weight_hh.data[gate * hidden_dim:(gate + 1) * hidden_dim, :]
+        
+        if method == 'Xavier':
+            nn.init.xavier_uniform_(chunk)
+        elif method == 'Orthogonal':
+            nn.init.orthogonal_(chunk)
+
+def _apply_init_scheme(rnn: nn.GRU, hidden_dim: int, init_scheme: str) -> None:
+    if init_scheme == 'default':
+        return
+    elif init_scheme == 'Xavier_Whh':
+        _init_weight_hh_per_gate(rnn.weight_hh_l0, hidden_dim, 'Xavier')
+    elif init_scheme == 'Orthogonal_Whh':
+        _init_weight_hh_per_gate(rnn.weight_hh_l0, hidden_dim, 'Orthongonal')
+    else:
+        raise ValueError(f"Unknown init_scheme: {init_scheme}")
+
+
 class Encoder(nn.Module):
-    def __init__(self, vocab_size, embedding_dim, hidden_dim, pretrained_weight = None):
+    def __init__(self, vocab_size, embedding_dim, hidden_dim, pretrained_weight = None, init_scheme = 'default'):
         super().__init__()
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
         
@@ -15,6 +35,7 @@ class Encoder(nn.Module):
         
         # nn.Embedding을 선언하고, self.embedding을 삽입
         self.rnn = nn.GRU(input_size = embedding_dim, hidden_size = hidden_dim, batch_first = True)
+        _apply_init_scheme(self.rnn, hidden_dim, init_scheme)
         
     def forward(self, src_ids):
         embedded = self.embedding(src_ids)
@@ -23,7 +44,7 @@ class Encoder(nn.Module):
         return outputs, hidden
 
 class Decoder(nn.Module):
-    def __init__(self, vocab_size, embedding_dim, hidden_dim, pretrained_weight = None):
+    def __init__(self, vocab_size, embedding_dim, hidden_dim, pretrained_weight = None, init_scheme = 'default'):
         super().__init__()
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
         
@@ -35,6 +56,7 @@ class Decoder(nn.Module):
         #     param.requires_grad = False
         
         self.rnn = nn.GRU(input_size = embedding_dim, hidden_size = hidden_dim, batch_first = True)
+        _apply_init_scheme(self.rnn, hidden_dim, init_scheme)
         self.fc = nn.Linear(hidden_dim, vocab_size)
         
     def forward(self, target_ids, enc_last_hidden):

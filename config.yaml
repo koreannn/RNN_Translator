@@ -17,7 +17,8 @@ train:
     learning_rate: 0.001
     epochs: 40
     embedding_dim: 768 # kor-tokenizer의 임베딩 차원에 맞춰서
-    hidden_dim: 512
+    hidden_dim: 64
+    init_scheme: "Xavier_Whh" # default / Xavier_Whh / Orthogonal_Whh
     batch_size: 32
     max_length: 400
     max_new_token: 400
