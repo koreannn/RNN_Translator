@@ -256,6 +256,7 @@ if __name__ == "__main__":
     embedding_dim = config["train"]["h_param"]["embedding_dim"]
     hidden_dim = config["train"]["h_param"]["hidden_dim"]
     init_scheme = config["train"]["h_param"].get("init_scheme", "default")
+    use_layer_norm = config["train"]["h_param"].get("use_layer_norm", False)
     max_length = config["train"]["h_param"]["max_length"] # 생성 시퀀스가 이 길이를 초과할 경우 강제 종료
     max_new_token = config["train"]["h_param"]["max_new_token"] # 새로 생성할 토큰 개수의 상한선
     valid_bleu_sample_size = config["train"]["h_param"]["valid_bleu_sample_size"] # 검증 단계 BLEU 점수 측정 문장 개수
@@ -276,7 +277,7 @@ if __name__ == "__main__":
     wandb_project = config["wandb"]["wandb_project"]
     wandb_entity = config["wandb"]["wandb_entity"]
     wandb_architecture = config["wandb"]["wandb_architecture"]
-    wandb_exp_name = f"architecture{model_architecture}-ep{epochs}-lr{learning_rate}-bs{batch_size}-emb{embedding_dim}-hid{hidden_dim}-init{init_scheme}" # 실험 로그 네이밍 컨벤션: <모델구조(이름 및 특징)-주요변수(hp)-그외특징>
+    wandb_exp_name = f"architecture{model_architecture}-ep{epochs}-lr{learning_rate}-bs{batch_size}-emb{embedding_dim}-hid{hidden_dim}-init{init_scheme}-ln{use_layer_norm}" # 실험 로그 네이밍 컨벤션: <모델구조(이름 및 특징)-주요변수(hp)-그외특징>
     
     # 로그 기록
     logger.add(f"logs/{wandb_exp_name}", encoding = "utf-8")
@@ -286,8 +287,24 @@ if __name__ == "__main__":
 
     logger.info(f"device: {device}")
 
-    encoder = Encoder(vocab_size = kor_vocab_size, embedding_dim = embedding_dim, hidden_dim = hidden_dim, pretrained_weight = kor_pretrained_weight, init_scheme = init_scheme).to(device)
-    decoder = Decoder(vocab_size = en_vocab_size, embedding_dim = embedding_dim, hidden_dim = hidden_dim, pretrained_weight = en_pretrained_weight, init_scheme = init_scheme).to(device)
+    encoder = Encoder(
+        vocab_size = kor_vocab_size,
+        embedding_dim = embedding_dim,
+        hidden_dim = hidden_dim,
+        pretrained_weight = kor_pretrained_weight,
+        init_scheme = init_scheme,
+        use_layer_norm = use_layer_norm
+        ).to(device)
+    
+    decoder = Decoder(
+        vocab_size = en_vocab_size, 
+        embedding_dim = embedding_dim,
+        hidden_dim = hidden_dim,
+        pretrained_weight = en_pretrained_weight,
+        init_scheme = init_scheme,
+        use_layer_norm = use_layer_norm
+        ).to(device)
+    
     seq2seq = Seq2Seq(encoder, decoder).to(device)
 
     start_time = time.time()
