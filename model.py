@@ -65,7 +65,8 @@ class Encoder(nn.Module):
         else:
             # nn.Embedding을 선언하고, self.embedding을 삽입
             self.rnn = nn.GRU(input_size = embedding_dim, hidden_size = hidden_dim, batch_first = True)
-            _apply_init_scheme(self.rnn, hidden_dim, init_scheme)
+        
+        _apply_init_scheme(self.rnn, hidden_dim, init_scheme)
         
     def forward(self, src_ids):
         embedded = self.embedding(src_ids)
@@ -90,8 +91,8 @@ class Decoder(nn.Module):
         
         else:
             self.rnn = nn.GRU(input_size = embedding_dim, hidden_size = hidden_dim, batch_first = True)
-            _apply_init_scheme(self.rnn, hidden_dim, init_scheme)
         
+        _apply_init_scheme(self.rnn, hidden_dim, init_scheme)
         self.fc = nn.Linear(hidden_dim, vocab_size)
         
     def forward(self, target_ids, enc_last_hidden):
