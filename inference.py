@@ -27,10 +27,11 @@ def get_model_from_checkpoint(checkpoint, device):
     embedding_dim = int(checkpoint["embedding_dim"])
     hidden_dim = int(checkpoint["hidden_dim"])
     kor_vocab_size = int(checkpoint["kor_vocab_size"])
-    en_vocab_size = int(checkpoint["en_vocab_size"])
+    en_vocab_size = int(checkpoint["en_vocab_size"]
+    use_ln = checkpoint.get("use_layer_norm", False)
     
-    encoder = Encoder(kor_vocab_size, embedding_dim, hidden_dim)
-    decoder = Decoder(en_vocab_size, embedding_dim, hidden_dim)
+    encoder = Encoder(kor_vocab_size, embedding_dim, hidden_dim, use_layer_norm = use_ln)
+    decoder = Decoder(en_vocab_size, embedding_dim, hidden_dim, use_layer_norm = use_ln)
     model = Seq2Seq(encoder, decoder, padding_id = int(checkpoint.get("pad_token_id", 0)))
     
     model.load_state_dict(checkpoint["seq2seq_state_dict"], strict = True)
@@ -426,7 +427,7 @@ if __name__ == "__main__":
     # logger.info(f"Loaded checkpoint from {model_checkpoint_path} (epoch = {model.get("epoch")} & validation loss = {model.get("valid_loss")})")
     logger.info(f"Loaded checkpoint from {model_checkpoint_path}")
     
-    model = get_model_from_checkpoint(model, device = device)
+    model = get_model_from_checkpoint(model, device = device, use_ln = use_layernorm)
     
     dataloader = CustomDataLoader(kor_tokenizer, en_tokenizer, max_length = max_length, batch_size = batch_size)
     _, _, test_dataloader = dataloader.get_data_loader() # test의 데이터로더는 1개씩 들어가도록 고정되어있음
@@ -481,3 +482,4 @@ if __name__ == "__main__":
     wandb.finish()
     logger.info(f"최종 BLEU Score: {bleu_score:.2f}")   
     logger.info(f"Total Inference Time: {elapsed:.2f}초")
+    

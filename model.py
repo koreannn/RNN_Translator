@@ -55,6 +55,7 @@ class LayerNormGRU(nn.Module):
         super().__init__()
         self.hidden_size = hidden_size
         self.cell = LayerNormGRUCell(input_size, hidden_size)
+        self.cell = torch.compile(self.cell)
 
     @property
     def weight_hh_l0(self):          # _apply_init_scheme 호환용 (수정)

@@ -84,6 +84,8 @@ def train(
             "kor_vocab_size": kor_vocab_size,
             "en_vocab_size": en_vocab_size,
             "pad_token_id": pad_token_id,
+            "use_layer_norm": use_layer_norm,
+            "init_scheme": init_scheme,
         }
         torch.save(payload, checkpoint_dir / "last.pt")
 
