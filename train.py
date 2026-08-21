@@ -50,7 +50,7 @@ def greedy_decode_batch( # valid 배치에 대한 BLEU 집계용
 def train(
     epochs, patience, min_delta, lr, batch_size, embedding_dim, hidden_dim,
     train_loader, valid_loader, valid_bleu_sample_size,
-    use_layer_norm, init_scheme,
+    use_layer_norm, init_scheme, grad_clip_max_norm,
     kor_vocab_size, en_vocab_size, en_tokenizer, max_new_token,
     encoder, decoder, seq2seq_model,
     device, wandb_project_name,
@@ -139,7 +139,7 @@ def train(
             # Gradient 노름 계측
             enc_grad_norm = torch.nn.utils.clip_grad_norm_(seq2seq_model.encoder.rnn.parameters(), max_norm = float('inf'))
             dec_grad_norm = torch.nn.utils.clip_grad_norm_(seq2seq_model.decoder.rnn.parameters(), max_norm = float('inf'))
-            total_grad_norm = torch.nn.utils.clip_grad_norm_(seq2seq_model.parameters(), max_norm = float('inf'))
+            total_grad_norm = torch.nn.utils.clip_grad_norm_(seq2seq_model.parameters(), max_norm = grad_clip_max_norm)
             
             optimizer.step()
 
@@ -260,6 +260,7 @@ if __name__ == "__main__":
     hidden_dim = config["train"]["h_param"]["hidden_dim"]
     init_scheme = config["train"]["h_param"].get("init_scheme", "default")
     use_layer_norm = config["train"]["h_param"].get("use_layer_norm", False)
+    grad_clip_max_norm = config["train"]["h_param"]["grad_clip_max_norm"]
     max_length = config["train"]["h_param"]["max_length"] # 생성 시퀀스가 이 길이를 초과할 경우 강제 종료
     max_new_token = config["train"]["h_param"]["max_new_token"] # 새로 생성할 토큰 개수의 상한선
     valid_bleu_sample_size = config["train"]["h_param"]["valid_bleu_sample_size"] # 검증 단계 BLEU 점수 측정 문장 개수
@@ -324,6 +325,7 @@ if __name__ == "__main__":
         valid_bleu_sample_size = valid_bleu_sample_size,
         use_layer_norm = use_layer_norm,
         init_scheme = init_scheme,
+        grad_clip_max_norm = grad_clip_max_norm,
         kor_vocab_size = kor_vocab_size,
         en_vocab_size = en_vocab_size,
         en_tokenizer = en_tokenizer,
