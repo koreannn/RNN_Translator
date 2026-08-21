@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.utils.parametrize as parametrize
 
 def _init_gru_orthogonal_xavier(rnn: nn.GRU, hidden_dim: int) -> None:
     for gate in range(3):
@@ -8,17 +7,11 @@ def _init_gru_orthogonal_xavier(rnn: nn.GRU, hidden_dim: int) -> None:
         nn.init.orthogonal_(chunk)
     nn.init.xavier_uniform_(rnn.weight_ih_l0.data)
 
-def _apply_orthogonal_parametrization(rnn: nn.GRU, hidden_dim: int) -> None:
-    parametrize.register_parametrization(rnn, "weight_hh_l0", PerGateOrthogonal(hidden_dim))
-    nn.init.xavier_uniform_(rnn.weight_ih_l0.data)
-
 def _apply_init_scheme(rnn: nn.GRU, hidden_dim: int, init_scheme: str) -> None:
     if init_scheme == 'default':
         return
     elif init_scheme == 'Orthogonal_Xavier':
         _init_gru_orthogonal_xavier(rnn, hidden_dim)
-    elif init_scheme == "OrthogonalParam_Xavier":
-        _apply_orthogonal_parametrization(rnn, hidden_dim)
     else:
         raise ValueError(f"Unknown init_scheme: {init_scheme}")
     
@@ -55,19 +48,6 @@ class LayerNormGRUCell(nn.Module):
         n = torch.tanh(self.ln_input(i_n) + r * self.ln_hidden(h_n))  # 수정
         h_new = (1 - z) * n + z * h   # 보존 경로는 정규화 없이 그대로
         return h_new
-
-class PerGateOrthogonal(nn.Module):
-    def __init__(self, hidden_dim):
-        super().__init__()
-        self.hidden_dim = hidden_dim
-        
-    def forward(self, x):
-        chunks = []
-        for gate in range(3):
-            chunk = x[gate * self.hidden_dim:(gate + 1) * self.hidden_dim, :]
-            q, _ = torch.linalg.qr(chunk)
-            chunks.append(q)
-        return torch.cat(chunks, dim = 0)
 
 
 class LayerNormGRU(nn.Module):
