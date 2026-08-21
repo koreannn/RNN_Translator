@@ -50,6 +50,7 @@ def greedy_decode_batch( # valid 배치에 대한 BLEU 집계용
 def train(
     epochs, patience, min_delta, lr, batch_size, embedding_dim, hidden_dim,
     train_loader, valid_loader, valid_bleu_sample_size,
+    use_layer_norm, init_scheme,
     kor_vocab_size, en_vocab_size, en_tokenizer, max_new_token,
     encoder, decoder, seq2seq_model,
     device, wandb_project_name,
@@ -321,6 +322,8 @@ if __name__ == "__main__":
         train_loader = train_dataloader,
         valid_loader = valid_dataloader,
         valid_bleu_sample_size = valid_bleu_sample_size,
+        use_layer_norm = use_layer_norm,
+        init_scheme = init_scheme,
         kor_vocab_size = kor_vocab_size,
         en_vocab_size = en_vocab_size,
         en_tokenizer = en_tokenizer,
