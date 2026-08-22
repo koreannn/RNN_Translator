@@ -48,9 +48,9 @@ def greedy_decode_batch( # valid 배치에 대한 BLEU 집계용
 
 
 def train(
-    epochs, patience, min_delta, lr, batch_size, embedding_dim, hidden_dim,
+    epochs, patience, min_delta, lr, batch_size, embedding_dim, hidden_dim, grad_clip_max_norm,
     train_loader, valid_loader, valid_bleu_sample_size,
-    use_layer_norm, init_scheme, grad_clip_max_norm,
+    use_layer_norm, init_scheme,
     kor_vocab_size, en_vocab_size, en_tokenizer, max_new_token,
     encoder, decoder, seq2seq_model,
     device, wandb_project_name,
@@ -258,9 +258,9 @@ if __name__ == "__main__":
     batch_size = config["train"]["h_param"]["batch_size"]
     embedding_dim = config["train"]["h_param"]["embedding_dim"]
     hidden_dim = config["train"]["h_param"]["hidden_dim"]
+    grad_clip_max_norm = config["train"]["h_param"].get("grad_clip_max_norm", None)
     init_scheme = config["train"]["h_param"].get("init_scheme", "default")
     use_layer_norm = config["train"]["h_param"].get("use_layer_norm", False)
-    grad_clip_max_norm = config["train"]["h_param"]["grad_clip_max_norm"]
     max_length = config["train"]["h_param"]["max_length"] # 생성 시퀀스가 이 길이를 초과할 경우 강제 종료
     max_new_token = config["train"]["h_param"]["max_new_token"] # 새로 생성할 토큰 개수의 상한선
     valid_bleu_sample_size = config["train"]["h_param"]["valid_bleu_sample_size"] # 검증 단계 BLEU 점수 측정 문장 개수
@@ -320,12 +320,12 @@ if __name__ == "__main__":
         batch_size = batch_size,
         embedding_dim = embedding_dim,
         hidden_dim = hidden_dim,
+        grad_clip_max_norm = grad_clip_max_norm,
         train_loader = train_dataloader,
         valid_loader = valid_dataloader,
         valid_bleu_sample_size = valid_bleu_sample_size,
         use_layer_norm = use_layer_norm,
         init_scheme = init_scheme,
-        grad_clip_max_norm = grad_clip_max_norm,
         kor_vocab_size = kor_vocab_size,
         en_vocab_size = en_vocab_size,
         en_tokenizer = en_tokenizer,

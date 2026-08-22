@@ -18,7 +18,7 @@ train:
     epochs: 40
     embedding_dim: 768 # kor-tokenizer의 임베딩 차원에 맞춰서
     hidden_dim: 768
-    init_scheme: "Orthogonal_Xavier" # default / Orthogonal_Xavier
+    init_scheme: "default" # default / Orthogonal_Xavier
     use_layer_norm: False
     grad_clip_max_norm: 5.0
     batch_size: 32
