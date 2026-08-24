@@ -63,6 +63,11 @@ class CustomDataLoader:
         self.batch_size = batch_size
         self.max_length = max_length
         self.sos_token = self.en_tokenizer.cls_token_id
+        
+        # 시드 고정
+        self.shuffle_generator = torch.Generator()
+        self.shuffle_generator.manual_seed(self.config["seed"])
+        
     
     def _collate_fn(self, batch):
         src_text = [src for src, _ in batch]
@@ -101,6 +106,7 @@ class CustomDataLoader:
             collate_fn = self._collate_fn,
             drop_last = True,
             pin_memory = torch.cuda.is_available(),
+            generator = self.shuffle_generator,
         )
         
         valid_dataloader = DataLoader(
@@ -111,6 +117,7 @@ class CustomDataLoader:
             collate_fn = self._collate_fn,
             drop_last = True,
             pin_memory = torch.cuda.is_available(),
+            generator = self.shuffle_generator,
         )
         
         test_dataloader = DataLoader(
