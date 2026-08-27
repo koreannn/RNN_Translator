@@ -26,7 +26,8 @@ def greedy_decode_batch( # valid 배치에 대한 BLEU 집계용
     max_new_token,
     device,
 ):
-    _, dec_hidden = seq2seq_model.encoder(src_ids) # (1, bs, hidden)
+    encoder_outputs, dec_hidden = seq2seq_model.encoder(src_ids)
+    src_mask = (src_ids != pad_token_id)
     batch_size = src_ids.size(0)
     
     dec_input = torch.full((batch_size, 1), sos_token_id, dtype = torch.long, device = device)
@@ -34,7 +35,7 @@ def greedy_decode_batch( # valid 배치에 대한 BLEU 집계용
     generated = []
     
     for _ in range(max_new_token):
-        logits_step, dec_hidden = seq2seq_model.decoder(dec_input, dec_hidden)
+        logits_step, dec_hidden, _ = seq2seq_model.decoder(dec_input, dec_hidden, encoder_outputs, src_mask)
         next_ids = torch.argmax(logits_step[:, -1, :], dim = -1)
         next_ids = next_ids.masked_fill(finished, pad_token_id)
         generated.append(next_ids)
@@ -62,6 +63,7 @@ def train(
         {"params": seq2seq_model.decoder.embedding.parameters(), "lr": 1e-5},
         {"params": seq2seq_model.encoder.rnn.parameters(), "lr": 1e-3},
         {"params": seq2seq_model.decoder.rnn.parameters(), "lr": 1e-3},
+        {"params": seq2seq_model.decoder.attention.parameters(), "lr": 1e-3},
         {"params": seq2seq_model.decoder.fc.parameters(), "lr": 1e-3},
     ])
     checkpoint_dir = Path(checkpoint_dir)

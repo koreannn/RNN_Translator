@@ -16,13 +16,12 @@ def _apply_init_scheme(rnn: nn.GRU, hidden_dim: int, init_scheme: str) -> None:
         raise ValueError(f"Unknown init_scheme: {init_scheme}")
     
 
-
 class LayerNormGRUCell(nn.Module):
     def __init__(self, input_size, hidden_size):
         super().__init__()
         self.hidden_size = hidden_size
         self.weight_ih = nn.Parameter(torch.empty(3 * hidden_size, input_size))
-        self.weight_hh = nn.Parameter(torch.empty(3 * hidden_size, hidden_size))  # 수정: hidden_size
+        self.weight_hh = nn.Parameter(torch.empty(3 * hidden_size, hidden_size))
         self.bias_ih = nn.Parameter(torch.zeros(3 * hidden_size))
         self.bias_hh = nn.Parameter(torch.zeros(3 * hidden_size))
 
@@ -79,6 +78,24 @@ class LayerNormGRU(nn.Module):
         return outputs, h_n
         
 
+class LuongAttention(nn.Module):
+    def __init__(self, hidden_dim):
+        super().__init__()
+        self.combine = nn.Linear(hidden_dim * 2, hidden_dim)
+    
+    def forward(self, decoder_outputs, encoder_outputs, src_mask = None):
+        scores = torch.bmm(decoder_outputs, encoder_outputs.transpose(1, 2)) # (bs, tgt_len, src_len)
+        
+        if src_mask is not None:
+            scores = scores.masked_fill(~src_mask.unsqueeze(1), float('-inf'))
+        
+        attn_weights = torch.softmax(scores, dim = -1) # (bs, tgt_len, src_len)
+        context = torch.bmm(attn_weights, encoder_outputs) # (bs, tgt_len, hidden_dim)
+        combined = torch.cat([decoder_outputs, context], dim = -1) # (bs, tgt_len, 2 * hidden_dim)
+        attentional_outputs = torch.tanh(self.combine(combined)) # (bs, tgt_len, hidden_dim)
+        
+        return attentional_outputs, attn_weights
+
 class Encoder(nn.Module):
     def __init__(self, vocab_size, embedding_dim, hidden_dim, pretrained_weight = None, init_scheme = 'default', use_layer_norm = False):
         super().__init__()
@@ -125,13 +142,15 @@ class Decoder(nn.Module):
             self.rnn = nn.GRU(input_size = embedding_dim, hidden_size = hidden_dim, batch_first = True)
         
         _apply_init_scheme(self.rnn, hidden_dim, init_scheme)
+        self.attention = LuongAttention(hidden_dim = hidden_dim)
         self.fc = nn.Linear(hidden_dim, vocab_size)
         
-    def forward(self, target_ids, enc_last_hidden):
+    def forward(self, target_ids, enc_last_hidden, encoder_outputs, src_mask = None):
         embedded = self.embedding(target_ids)
         outputs, dec_last_hidden = self.rnn(embedded, enc_last_hidden)
-        logits = self.fc(outputs)
-        return logits, dec_last_hidden
+        attentional_outputs, attn_weights = self.attention(outputs, encoder_outputs, src_mask)
+        logits = self.fc(attentional_outputs)
+        return logits, dec_last_hidden, attn_weights
 
 
 class Seq2Seq(nn.Module):
@@ -142,6 +161,7 @@ class Seq2Seq(nn.Module):
         self.pad_id = padding_id
     
     def forward(self, src_ids, target_ids):
-        _, encoder_hidden = self.encoder(src_ids)
-        logits, _ = self.decoder(target_ids, encoder_hidden)
+        encoder_outputs, encoder_hidden = self.encoder(src_ids)
+        src_mask = (src_ids != self.pad_id)
+        logits, _, _ = self.decoder(target_ids, encoder_hidden, encoder_outputs, src_mask)
         return logits

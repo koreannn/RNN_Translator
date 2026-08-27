@@ -66,7 +66,8 @@ def translate_sentence( # Streamlit 대시보드용
         )
         src_ids = src_enc["input_ids"].to(device)
 
-        _, enc_hidden = model.encoder(src_ids)
+        encoder_outputs, enc_hidden = model.encoder(src_ids)
+        src_mask = (src_ids != kor_tokenizer.pad_token_id)
         dec_hidden = enc_hidden
         dec_input = torch.full((1, 1), sos_token_id, dtype = torch.long, device = device)
 
@@ -74,7 +75,7 @@ def translate_sentence( # Streamlit 대시보드용
         finished = torch.zeros(1, dtype = torch.bool, device = device)
 
         for _ in range(max_new_tokens):
-            logits, dec_hidden = model.decoder(dec_input, dec_hidden)
+            logits, dec_hidden, _ = model.decoder(dec_input, dec_hidden, encoder_outputs, src_mask)
             next_ids = torch.argmax(logits[:, -1, :], dim = -1)
             next_ids = torch.where(finished, torch.full_like(next_ids, pad_token_id), next_ids)
 
@@ -115,7 +116,8 @@ def greedy_search( # greedy방식으로 하나씩 추론
             src_ids = src_ids.to(device)
             bs = src_ids.size(0)
             
-            _, enc_hidden = model.encoder(src_ids) # (1, bs, hidden_dim)
+            encoder_outputs, enc_hidden = model.encoder(src_ids) # (1, bs, hidden_dim)
+            src_mask = (src_ids != kor_tokenizer.pad_token_id)
             dec_hidden = enc_hidden
             dec_input = torch.full((bs, 1), sos_token_id, dtype = torch.long, device = device)
             
@@ -123,7 +125,7 @@ def greedy_search( # greedy방식으로 하나씩 추론
             finished = torch.zeros(bs, dtype = torch.bool, device = device)
             
             for _ in range(max_new_tokens):
-                logits, dec_hidden = model.decoder(dec_input, dec_hidden) # (bs, 1, vocab_size)
+                logits, dec_hidden, _ = model.decoder(dec_input, dec_hidden, encoder_outputs, src_mask) # (bs, 1, vocab_size)
                 next_ids = torch.argmax(logits[:, -1, :], dim = -1) # (bs, )
                 next_ids = torch.where(finished, torch.full_like(next_ids, pad_token_id), next_ids)
                 
