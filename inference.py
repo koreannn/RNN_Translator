@@ -302,74 +302,83 @@ def hybrid_sampling(
     temperature,
     top_k,
     top_p,
+    sample_size = None,
 ):
     sos_token_id = en_tokenizer.cls_token_id
     eos_token_id = en_tokenizer.sep_token_id
-    
+
     if sos_token_id is None or eos_token_id is None:
         raise ValueError("영어 토크나이저는 반드시 cls_token과 sep_token이 있어야합니다.")
-    
+
     all_yhat = []
     all_ground_truth = []
-    
-    for idx, (src_ids, _, tgt_label) in enumerate(test_dataloader): # 학습할때는 (src_ids, tgt_input, tgt_label) / 추론 시에는 오직 자신이 만든 토큰으로 다음 토큰을 예측해야함 -> (src_ids, _, _)
-        
-        logger.info(f"번역 전 문장: {kor_tokenizer.decode(src_ids[0].tolist(), skip_special_tokens = True)}")
-        generated_ids = [sos_token_id]
-        with torch.no_grad():
-            src_ids = src_ids.to(device)
-            _, enc_hidden = model.encoder(src_ids)
-            dec_hidden = enc_hidden
-            dec_input = torch.tensor([[sos_token_id]], dtype = torch.long, device = device)
-            
-            for _ in range(max_new_tokens):
-                logits, dec_hidden = model.decoder(dec_input, dec_hidden) # logits.shape() = (bs, seq_len, vocab_size)
-                next_token_logits = logits[:, -1, :].squeeze(0) # 배치 차원 버림(next_token_logits.shape() = (vocab_size,))
-                scaled_logits = next_token_logits / temperature
-                
-                # 1. Top-K 필터링
-                if top_k > 0:
-                    criteria_logit = torch.topk(scaled_logits, top_k)[0][-1]
-                    indices_to_removed = scaled_logits < criteria_logit
-                    scaled_logits[indices_to_removed] = -float('inf')
-                
-                # 2. Top-P 필터링
-                if top_p < 1.0:
-                    sorted_logits, sorted_indices = torch.sort(scaled_logits, descending = True)
-                    sorted_probs = torch.softmax(sorted_logits, dim = -1) # 어차피 1차원 텐서지만 축을 지정해야 경고 메시지가 안뜸
-                    cumulative_probs = torch.cumsum(sorted_probs, dim = -1)
-                    
-                    sorted_indices_to_removed = cumulative_probs > top_p # sorted_indices_to_removed: [False, False, ... , True] (shape: (vocab_size, ))
-                    cloned_sorted_indices_to_removed = sorted_indices_to_removed.clone()
-                    cloned_sorted_indices_to_removed[1:] = sorted_indices_to_removed[:-1]
-                    cloned_sorted_indices_to_removed[0] = False # 맨 첫 번째 토큰은 탈락하지 않도록
-                    
-                    indices_to_removed = sorted_indices[cloned_sorted_indices_to_removed]
-                    scaled_logits[indices_to_removed] = -float('inf')
-                    
-                probs = torch.softmax(scaled_logits, dim = -1)
-                next_id = int(torch.multinomial(probs, num_samples = 1).item())
-                
-                generated_ids.append(next_id)
-                if next_id == eos_token_id or len(generated_ids) > max_length:
-                    break
-                
-                dec_input = torch.tensor([[next_id]], dtype = torch.long, device = device)
-            
-            translated = en_tokenizer.decode(generated_ids, skip_special_tokens = True).strip()
-            
-            # BLEU
-            ground_truth = en_tokenizer.decode(tgt_label[0].tolist(), skip_special_tokens = True).strip()
-            all_yhat.append(translated)
-            all_ground_truth.append(ground_truth)
-            
-            logger.info(f"번역된 문장: {translated}")
-    
+
+    for batch_idx, (src_ids, _, tgt_label) in enumerate(test_dataloader):
+        src_ids = src_ids.to(device)
+        bs = src_ids.size(0)
+
+        for i in range(bs): 
+            if sample_size is not None and len(all_yhat) >= sample_size:
+                break
+
+            sent_src_ids = src_ids[i : i + 1]
+            logger.info(f"번역 전 문장: {kor_tokenizer.decode(sent_src_ids[0].tolist(), skip_special_tokens = True)}")
+            generated_ids = [sos_token_id]
+
+            with torch.no_grad():
+                encoder_outputs, enc_hidden = model.encoder(sent_src_ids)
+                src_mask = (sent_src_ids != kor_tokenizer.pad_token_id)
+                dec_hidden = enc_hidden
+                dec_input = torch.tensor([[sos_token_id]], dtype = torch.long, device = device)
+
+                for _ in range(max_new_tokens):
+                    logits, dec_hidden, _ = model.decoder(dec_input, dec_hidden, encoder_outputs, src_mask)
+                    next_token_logits = logits[:, -1, :].squeeze(0)
+                    scaled_logits = next_token_logits / temperature
+
+                    # 1. Top-K 필터링
+                    if top_k > 0:
+                        criteria_logit = torch.topk(scaled_logits, top_k)[0][-1]
+                        indices_to_removed = scaled_logits < criteria_logit
+                        scaled_logits[indices_to_removed] = -float('inf')
+
+                    # 2. Top-P 필터링
+                    if top_p < 1.0:
+                        sorted_logits, sorted_indices = torch.sort(scaled_logits, descending = True)
+                        sorted_probs = torch.softmax(sorted_logits, dim = -1)
+                        cumulative_probs = torch.cumsum(sorted_probs, dim = -1)
+
+                        sorted_indices_to_removed = cumulative_probs > top_p
+                        cloned_sorted_indices_to_removed = sorted_indices_to_removed.clone()
+                        cloned_sorted_indices_to_removed[1:] = sorted_indices_to_removed[:-1]
+                        cloned_sorted_indices_to_removed[0] = False
+
+                        indices_to_removed = sorted_indices[cloned_sorted_indices_to_removed]
+                        scaled_logits[indices_to_removed] = -float('inf')
+
+                    probs = torch.softmax(scaled_logits, dim = -1)
+                    next_id = int(torch.multinomial(probs, num_samples = 1).item())
+
+                    generated_ids.append(next_id)
+                    if next_id == eos_token_id or len(generated_ids) > max_length:
+                        break
+
+                    dec_input = torch.tensor([[next_id]], dtype = torch.long, device = device)
+
+                translated = en_tokenizer.decode(generated_ids, skip_special_tokens = True).strip()
+                ground_truth = en_tokenizer.decode(tgt_label[i].tolist(), skip_special_tokens = True).strip()
+                all_yhat.append(translated)
+                all_ground_truth.append(ground_truth)
+
+                logger.info(f"번역된 문장: {translated}")
+
+        if sample_size is not None and len(all_yhat) >= sample_size:
+            break
+
     bleu_result = sacrebleu.corpus_bleu(all_yhat, [all_ground_truth])
     logger.info(f"Test corpus BLEU 점수: {bleu_result.score:.2f}")
-    
-    return bleu_result.score
 
+    return bleu_result.score
 
 
 if __name__ == "__main__":
@@ -448,19 +457,20 @@ if __name__ == "__main__":
     #     sample_size = 1000,
     # )
     
-    # # hybrid sampling
-    # bleu_score = hybrid_sampling(
-    #     model,
-    #     kor_tokenizer,
-    #     en_tokenizer,
-    #     device,
-    #     test_dataloader,
-    #     max_length,
-    #     max_new_tokens = max_n_token,
-    #     temperature = 0.8,
-    #     top_k = 50,
-    #     top_p = 0.9,
-    # )
+    # hybrid sampling
+    bleu_score = hybrid_sampling(
+        model,
+        kor_tokenizer,
+        en_tokenizer,
+        device,
+        test_dataloader,
+        max_length,
+        max_new_tokens = max_n_token,
+        temperature = 0.8,
+        top_k = 50,
+        top_p = 0.9,
+        sample_size = 1000,
+    )
     
     elapsed = time.time() - start_time
     
