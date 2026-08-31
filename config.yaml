@@ -33,7 +33,7 @@ train:
 inference:
   max_length: 400
   max_new_token: 400
-  batch_size: 32
+  batch_size: 4
   checkpoint_path: "checkpoints/best.pt"
 
 model:
