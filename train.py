@@ -50,22 +50,22 @@ def greedy_decode_batch( # valid 배치에 대한 BLEU 집계용
 
 
 def train(
-    epochs, patience, min_delta, lr, batch_size, embedding_dim, hidden_dim, grad_clip_max_norm,
+    epochs, patience, min_delta, lr, embedding_lr, batch_size, embedding_dim, hidden_dim, grad_clip_max_norm,
     train_loader, valid_loader, valid_bleu_sample_size,
     use_layer_norm, init_scheme,
     kor_vocab_size, en_vocab_size, en_tokenizer, max_new_token,
-    encoder, decoder, seq2seq_model,
+    seq2seq_model,
     device, wandb_project_name,
     wandb_entity, wandb_project, wandb_architecture,
     checkpoint_dir = "checkpoints",
 ):
     optimizer = Adam([
-        {"params": seq2seq_model.encoder.embedding.parameters(), "lr": 1e-5},
-        {"params": seq2seq_model.decoder.embedding.parameters(), "lr": 1e-5},
-        {"params": seq2seq_model.encoder.rnn.parameters(), "lr": 1e-3},
-        {"params": seq2seq_model.decoder.rnn.parameters(), "lr": 1e-3},
-        {"params": seq2seq_model.decoder.attention.parameters(), "lr": 1e-3},
-        {"params": seq2seq_model.decoder.fc.parameters(), "lr": 1e-3},
+        {"params": seq2seq_model.encoder.embedding.parameters(), "lr": embedding_lr},
+        {"params": seq2seq_model.decoder.embedding.parameters(), "lr": embedding_lr},
+        {"params": seq2seq_model.encoder.rnn.parameters(), "lr": lr},
+        {"params": seq2seq_model.decoder.rnn.parameters(), "lr": lr},
+        {"params": seq2seq_model.decoder.attention.parameters(), "lr": lr},
+        {"params": seq2seq_model.decoder.fc.parameters(), "lr": lr},
     ])
     checkpoint_dir = Path(checkpoint_dir)
     best_valid_loss = float("inf")
@@ -271,12 +271,11 @@ if __name__ == "__main__":
     # h_param
     model_architecture = config["train"]["model_architecture"]
     epochs = config["train"]["h_param"]["epochs"]
-    learning_rate = config["train"]["h_param"]["learning_rate"]
     batch_size = config["train"]["h_param"]["batch_size"]
     embedding_dim = config["train"]["h_param"]["embedding_dim"]
     hidden_dim = config["train"]["h_param"]["hidden_dim"]
     embedding_lr = config["train"]["h_param"]["embedding_lr"]
-    rnn_attn_fc_lr = embedding_lr = config["train"]["h_param"]["rnn_attn_fc_lr"]
+    rnn_attn_fc_lr = config["train"]["h_param"]["rnn_attn_fc_lr"]
     grad_clip_max_norm = config["train"]["h_param"].get("grad_clip_max_norm", None)
     init_scheme = config["train"]["h_param"].get("init_scheme", "default")
     use_layer_norm = config["train"]["h_param"].get("use_layer_norm", False)
@@ -301,33 +300,11 @@ if __name__ == "__main__":
     wandb_project = config["wandb"]["wandb_project"]
     wandb_entity = config["wandb"]["wandb_entity"]
     wandb_architecture = config["wandb"]["wandb_architecture"]
-    wandb_exp_name = f"architecture{model_architecture}-ep{epochs}-lr{learning_rate}-bs{batch_size}-emb{embedding_dim}-hid{hidden_dim}-init{init_scheme}-ln{use_layer_norm}" # 실험 로그 네이밍 컨벤션: <모델구조(이름 및 특징)-주요변수(hp)-그외특징>
+    wandb_exp_name = f"architecture{model_architecture}-ep{epochs}-lr{rnn_attn_fc_lr}-bs{batch_size}-emb{embedding_dim}-hid{hidden_dim}-init{init_scheme}-ln{use_layer_norm}" # 실험 로그 네이밍 컨벤션: <모델구조(이름 및 특징)-주요변수(hp)-그외특징>
     
     # mlflow
     mlflow.set_tracking_uri(config["mlflow"]["tracking_uri"])
     mlflow.set_experiment(config["mlflow"]["experiment_name"])
-
-    with mlflow.start_run(run_name = wandb_exp_name):
-        mlflow.log_params({
-            "model_architecture": model_architecture,
-            "epochs": epochs,
-            "batch_size": batch_size,
-            "embedding_dim": embedding_dim,
-            "hidden_dim": hidden_dim,
-            "init_scheme": init_scheme,
-            "use_layer_norm": use_layer_norm,
-            "grad_clip_max_norm": grad_clip_max_norm,
-            "max_length": max_length,
-            "max_new_token": max_new_token,
-            "valid_bleu_sample_size": valid_bleu_sample_size,
-            "patience": patience,
-            "min_delta": min_delta,
-            "seed": config["seed"],
-            "kor_tokenizer": kor_tokenizer_name,
-            "en_tokenizer": en_tokenizer_name,
-            "lr_embedding": embedding_lr,
-            "lr_rnn_attn_fc": rnn_attn_fc_lr,
-        })
     
     # 로그 기록
     logger.add(f"logs/{wandb_exp_name}", encoding = "utf-8")
@@ -357,33 +334,58 @@ if __name__ == "__main__":
     
     seq2seq = Seq2Seq(encoder, decoder).to(device)
 
-    start_time = time.time()
-    actual_epoch = train(
-        epochs = epochs,
-        patience = patience, 
-        min_delta = min_delta, # 조기 종료용 h param
-        lr = learning_rate,
-        batch_size = batch_size,
-        embedding_dim = embedding_dim,
-        hidden_dim = hidden_dim,
-        grad_clip_max_norm = grad_clip_max_norm,
-        train_loader = train_dataloader,
-        valid_loader = valid_dataloader,
-        valid_bleu_sample_size = valid_bleu_sample_size,
-        use_layer_norm = use_layer_norm,
-        init_scheme = init_scheme,
-        kor_vocab_size = kor_vocab_size,
-        en_vocab_size = en_vocab_size,
-        en_tokenizer = en_tokenizer,
-        max_new_token = max_new_token,
-        encoder = encoder,
-        decoder = decoder,
-        seq2seq_model = seq2seq,
-        device = device,
-        wandb_project = wandb_project,
-        wandb_entity = wandb_entity,
-        wandb_architecture = wandb_architecture,
-        wandb_project_name = wandb_exp_name,
-    )
-    elapsed = time.time() - start_time
-    logger.info(f"학습 소요 시간: {elapsed:.2f}초")
+    
+    with mlflow.start_run(run_name = wandb_exp_name):
+        start_time = time.time()
+        
+        mlflow.log_params({
+            "model_architecture": model_architecture,
+            "epochs": epochs,
+            "batch_size": batch_size,
+            "embedding_dim": embedding_dim,
+            "hidden_dim": hidden_dim,
+            "init_scheme": init_scheme,
+            "use_layer_norm": use_layer_norm,
+            "grad_clip_max_norm": grad_clip_max_norm,
+            "max_length": max_length,
+            "max_new_token": max_new_token,
+            "valid_bleu_sample_size": valid_bleu_sample_size,
+            "patience": patience,
+            "min_delta": min_delta,
+            "seed": config["seed"],
+            "kor_tokenizer": kor_tokenizer_name,
+            "en_tokenizer": en_tokenizer_name,
+            "lr_embedding": embedding_lr,
+            "lr_rnn_attn_fc": rnn_attn_fc_lr,
+        })
+        
+        actual_epoch = train(
+            epochs = epochs,
+            patience = patience, 
+            min_delta = min_delta, # 조기 종료용 h param
+            lr = rnn_attn_fc_lr,
+            embedding_lr = embedding_lr,
+            batch_size = batch_size,
+            embedding_dim = embedding_dim,
+            hidden_dim = hidden_dim,
+            grad_clip_max_norm = grad_clip_max_norm,
+            train_loader = train_dataloader,
+            valid_loader = valid_dataloader,
+            valid_bleu_sample_size = valid_bleu_sample_size,
+            use_layer_norm = use_layer_norm,
+            init_scheme = init_scheme,
+            kor_vocab_size = kor_vocab_size,
+            en_vocab_size = en_vocab_size,
+            en_tokenizer = en_tokenizer,
+            max_new_token = max_new_token,
+            seq2seq_model = seq2seq,
+            device = device,
+            wandb_project = wandb_project,
+            wandb_entity = wandb_entity,
+            wandb_architecture = wandb_architecture,
+            wandb_project_name = wandb_exp_name,
+            )
+        elapsed = time.time() - start_time
+        logger.info(f"학습 소요 시간: {elapsed:.2f}초")
+    
+

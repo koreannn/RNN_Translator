@@ -6,7 +6,7 @@ wandb:
   wandb_architecture: "Vanila-RNN-Seq2Seq"
 
 mlflow:
-  tracking_uri: "sqlite://mlflow.db"
+  tracking_uri: "sqlite:///mlflow.db"
   experiment_name: "rnn-translator"
 
 data:
@@ -18,9 +18,9 @@ data:
 
 train:
   h_param:
-    embedding_lr: 1e-5
-    rnn_attn_fc_lr: 1e-3
-    epochs: 40
+    embedding_lr: 1.0e-5
+    rnn_attn_fc_lr: 1.0e-3
+    epochs: 1 # 40
     embedding_dim: 768 # kor-tokenizer의 임베딩 차원에 맞춰서
     hidden_dim: 768
     init_scheme: "Orthogonal_Xavier" # default / Orthogonal_Xavier
@@ -29,7 +29,7 @@ train:
     batch_size: 32
     max_length: 400
     max_new_token: 400
-    valid_bleu_sample_size: 2000
+    valid_bleu_sample_size: 100 # 2000
     early_stopping:
       patience: 3 # valid loss가 이 횟수만큼 연속으로 개선되지 않을경우, early stopping
       min_delta: 0.005

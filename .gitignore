@@ -5,6 +5,11 @@ data
 *.out
 *.png
 
+# mlflow
+mlruns
+mlartifacts
+mlflow.db
+
 checkpoints
 *.env
 *.pt
