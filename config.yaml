@@ -5,6 +5,10 @@ wandb:
   wandb_project: "pytorch-rnn-translator"
   wandb_architecture: "Vanila-RNN-Seq2Seq"
 
+mlflow:
+  tracking_uri: "sqlite://mlflow.db"
+  experiment_name: "rnn-translator"
+
 data:
   dataset1: "Helsinki-NLP/opus-100" # 구어체 위주, 짧은 길이 위주
   dataset1_config: "en-ko"
@@ -14,7 +18,8 @@ data:
 
 train:
   h_param:
-    learning_rate: 0.001
+    embedding_lr: 1e-5
+    rnn_attn_fc_lr: 1e-3
     epochs: 40
     embedding_dim: 768 # kor-tokenizer의 임베딩 차원에 맞춰서
     hidden_dim: 768

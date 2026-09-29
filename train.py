@@ -6,6 +6,7 @@ import random
 import torch
 import torch.nn.functional as F
 import wandb
+import mlflow
 import sacrebleu
 import numpy as np
 
@@ -154,6 +155,11 @@ def train(
                 'train/grad_norm_encoder_rnn': enc_grad_norm.item(),
                 'train/grad_norm_decoder_rnn': dec_grad_norm.item(),
             })
+            mlflow.log_metrics({
+                'train/grad_norm_total': total_grad_norm.item(),
+                'train/grad_norm_encoder_rnn': enc_grad_norm.item(),
+                'train/grad_norm_decoder_rnn': dec_grad_norm.item(),
+            }, step = global_step, synchronous = False)
 
         train_avg_loss = train_loss_sum / max(1, train_steps)
 
@@ -226,6 +232,13 @@ def train(
             "valid_bleu": valid_bleu,
             "epoch_time_sec": epoch_elapsed,
         })
+        
+        mlflow.log_metrics({
+            "train_loss": train_avg_loss,
+            "valid_loss": valid_avg_loss,
+            "valid_bleu": valid_bleu,
+            "epoch_time_sec": epoch_elapsed,
+        }, step = epoch + 1)
         save_checkpoint(epoch = epoch, train_loss = train_avg_loss, valid_loss = valid_avg_loss)
         
         if epochs_no_improve >= patience:
@@ -239,6 +252,8 @@ def train(
         
     total_train_time = time.time() - train_start_time
     wandb.summary["total_train_time_sec"] = total_train_time
+    mlflow.log_metric("total_train_time_sec", total_train_time)
+    mlflow.log_metric("actual_epochs", actual_epochs)
     return actual_epochs # 로그 이름 바꾸기 위한 반환
 
 
@@ -260,6 +275,8 @@ if __name__ == "__main__":
     batch_size = config["train"]["h_param"]["batch_size"]
     embedding_dim = config["train"]["h_param"]["embedding_dim"]
     hidden_dim = config["train"]["h_param"]["hidden_dim"]
+    embedding_lr = config["train"]["h_param"]["embedding_lr"]
+    rnn_attn_fc_lr = embedding_lr = config["train"]["h_param"]["rnn_attn_fc_lr"]
     grad_clip_max_norm = config["train"]["h_param"].get("grad_clip_max_norm", None)
     init_scheme = config["train"]["h_param"].get("init_scheme", "default")
     use_layer_norm = config["train"]["h_param"].get("use_layer_norm", False)
@@ -268,6 +285,7 @@ if __name__ == "__main__":
     valid_bleu_sample_size = config["train"]["h_param"]["valid_bleu_sample_size"] # 검증 단계 BLEU 점수 측정 문장 개수
     patience = config["train"]["h_param"]["early_stopping"]["patience"]
     min_delta = config["train"]["h_param"]["early_stopping"]["min_delta"]
+    
 
     # tokenizer
     kor_tokenizer_name = config["model"]["kor_tokenizer"]
@@ -284,6 +302,32 @@ if __name__ == "__main__":
     wandb_entity = config["wandb"]["wandb_entity"]
     wandb_architecture = config["wandb"]["wandb_architecture"]
     wandb_exp_name = f"architecture{model_architecture}-ep{epochs}-lr{learning_rate}-bs{batch_size}-emb{embedding_dim}-hid{hidden_dim}-init{init_scheme}-ln{use_layer_norm}" # 실험 로그 네이밍 컨벤션: <모델구조(이름 및 특징)-주요변수(hp)-그외특징>
+    
+    # mlflow
+    mlflow.set_tracking_uri(config["mlflow"]["tracking_uri"])
+    mlflow.set_experiment(config["mlflow"]["experiment_name"])
+
+    with mlflow.start_run(run_name = wandb_exp_name):
+        mlflow.log_params({
+            "model_architecture": model_architecture,
+            "epochs": epochs,
+            "batch_size": batch_size,
+            "embedding_dim": embedding_dim,
+            "hidden_dim": hidden_dim,
+            "init_scheme": init_scheme,
+            "use_layer_norm": use_layer_norm,
+            "grad_clip_max_norm": grad_clip_max_norm,
+            "max_length": max_length,
+            "max_new_token": max_new_token,
+            "valid_bleu_sample_size": valid_bleu_sample_size,
+            "patience": patience,
+            "min_delta": min_delta,
+            "seed": config["seed"],
+            "kor_tokenizer": kor_tokenizer_name,
+            "en_tokenizer": en_tokenizer_name,
+            "lr_embedding": embedding_lr,
+            "lr_rnn_attn_fc": rnn_attn_fc_lr,
+        })
     
     # 로그 기록
     logger.add(f"logs/{wandb_exp_name}", encoding = "utf-8")
