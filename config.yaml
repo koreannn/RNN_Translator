@@ -8,6 +8,7 @@ wandb:
 mlflow:
   tracking_uri: "sqlite:///mlflow.db"
   experiment_name: "rnn-translator"
+  log_model_weights: true # false일 경우 모델 파일이 MLflow에 올라가지 않음
 
 data:
   dataset1: "Helsinki-NLP/opus-100" # 구어체 위주, 짧은 길이 위주

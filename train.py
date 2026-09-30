@@ -2,6 +2,7 @@
 한국어 -> 영어 번역기
 """
 import time
+import tempfile
 import random
 import torch
 import torch.nn.functional as F
@@ -222,6 +223,12 @@ def train(
         
         bleu_result = sacrebleu.corpus_bleu(all_yhat, [all_ground_truth])
         valid_bleu = bleu_result.score
+        
+        samples = "\n\n".join(
+            f"[REF] {ref}\n[HYP] {hyp}"
+            for ref, hyp in zip(all_ground_truth[:20], all_yhat[:20])
+        )
+        mlflow.log_text(samples, f"samples/epoch_{epoch + 1:02d}.txt")
 
         logger.info(f"epoch = {epoch + 1} train_loss = {train_avg_loss:.4f} valid_loss = {valid_avg_loss:.4f} valid_bleu = {valid_bleu:.2f}")
         epoch_elapsed = time.time() - epoch_start
@@ -307,7 +314,8 @@ if __name__ == "__main__":
     mlflow.set_experiment(config["mlflow"]["experiment_name"])
     
     # 로그 기록
-    logger.add(f"logs/{wandb_exp_name}", encoding = "utf-8")
+    log_path = f"logs/{wandb_exp_name}-{time.strftime('%Y%m%d-%H%M%S')}.log"
+    logger.add(log_path, encoding = "utf-8")
     
     data_loader = CustomDataLoader(kor_tokenizer, en_tokenizer, max_length = max_length, batch_size = batch_size)
     train_dataloader, valid_dataloader, _ = data_loader.get_data_loader()
@@ -358,6 +366,7 @@ if __name__ == "__main__":
             "lr_embedding": embedding_lr,
             "lr_rnn_attn_fc": rnn_attn_fc_lr,
         })
+        mlflow.log_artifact("config.yaml", artifact_path = "config")
         
         actual_epoch = train(
             epochs = epochs,
@@ -387,5 +396,15 @@ if __name__ == "__main__":
             )
         elapsed = time.time() - start_time
         logger.info(f"학습 소요 시간: {elapsed:.2f}초")
+        
+        if config["mlflow"].get("log_model_weights", True):
+            best_ckpt = torch.load("checkpoints/best.pt", map_location = "cpu")
+            best_ckpt.pop("optimizer_state_dict")  # 추론에는 불필요 (용량의 약 2/3)
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                weights_path = Path(tmp_dir) / "best_weights.pt"
+                torch.save(best_ckpt, "checkpoints/best_weights.pt")
+                mlflow.log_artifact("checkpoints/best_weights.pt", artifact_path = "checkpoints")
+
+        mlflow.log_artifact(log_path, artifact_path = "logs")
     
 
