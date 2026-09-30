@@ -12,7 +12,7 @@ die()  { echo -e "\n\033[1;31m[ERROR]\033[0m $1"; exit 1; }
 
 
 ##################### wandb 설정 #####################
-WANDB_ENV_FILE=".env"
+WANDB_ENV_FILE="config/.env"
 
 if [ -f "$WANDB_ENV_FILE" ]; then
     WANDB_API_KEY_VALUE=$(grep -E "^WANDB_API_KEY" "$WANDB_ENV_FILE" | cut -d '=' -f2 | tr -d ' ')

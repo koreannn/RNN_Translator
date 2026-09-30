@@ -5,7 +5,7 @@ from transformers import AutoTokenizer
 from utils import load_config
 from inference import load_checkpoint, get_model_from_checkpoint, translate_sentence
 
-CONFIG_PATH = "config.yaml"
+CONFIG_PATH = "config/config.yaml"
 
 st.title("문장 번역기 테스트해보기")
 
@@ -37,7 +37,7 @@ try:
 except FileNotFoundError:
     st.error(
         "체크포인트 파일을 찾을 수 없습니다. "
-        "config.yaml의 inference.checkpoint_path 경로를 확인해주세요."
+        "config/config.yaml의 inference.checkpoint_path 경로를 확인해주세요."
     )
     st.stop()
 

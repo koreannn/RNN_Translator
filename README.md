@@ -63,8 +63,9 @@ GPU 서버 세팅을 간편하게 하기 위해 `.sh`스크립트(`/scripts/setu
 **실행:**
 
 1. 레포지토리 clone (`git clone <url>`)
-2. wandb설정을 위해 `.env`파일 생성 및 환경변수 설정
-3. 프로젝트 디렉터리로 이동하여 스크립트 실행 (`bash ./scripts/setup-gpu-server.sh`(또는 `sh ./scripts/setup-gpu-server.sh`))
+2. 프로젝트 디렉터리로 이동하여 스크립트 실행 (`bash ./scripts/setup-gpu-server.sh`(또는 `sh ./scripts/setup-gpu-server.sh`))
+   - `config/.env.sample`, `config/config.sample.yaml`을 기반으로 `config/.env`, `config/config.yaml`이 자동 생성됩니다. (이미 있으면 유지)
+3. 생성된 `config/.env`에 `WANDB_API_KEY` 입력, 필요 시 `config/config.yaml` 수정
 4. .venv 환경을 활성화하기 위해 셸 재시작 (source ~/.bashrc) ('rnn-translator' 가상환경 표시가 되면 완료된것입니다.)
 
 **기능:**
@@ -90,7 +91,9 @@ GPU 서버 세팅을 간편하게 하기 위해 `.sh`스크립트(`/scripts/setu
 root/
 ├── __init__.py
 ├── app.py
-├── config.yaml
+├── config/
+│   ├── .env.sample
+│   └── config.sample.yaml
 ├── dataloader.py
 ├── inference.py
 ├── train.csv

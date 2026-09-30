@@ -31,3 +31,5 @@ note.py
 
 # claude
 docs
+# 실제 설정 파일 (샘플만 커밋)
+config/config.yaml

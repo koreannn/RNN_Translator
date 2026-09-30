@@ -22,7 +22,7 @@ class CustomDataLoader:
                 kor_tokenizer, en_tokenizer,
                 max_length, batch_size,
             ):
-        self.config = load_config("config.yaml")
+        self.config = load_config("config/config.yaml")
         data_config = self.config["data"]
         
         dataset = load_dataset(data_config["dataset2"])["train"]

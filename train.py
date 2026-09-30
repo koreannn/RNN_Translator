@@ -265,7 +265,7 @@ def train(
 
 
 if __name__ == "__main__":
-    config = load_config("config.yaml")
+    config = load_config("config/config.yaml")
     device = "cuda" if torch.cuda.is_available() else "mps"
 
     # 난수 고정
@@ -366,7 +366,7 @@ if __name__ == "__main__":
             "lr_embedding": embedding_lr,
             "lr_rnn_attn_fc": rnn_attn_fc_lr,
         })
-        mlflow.log_artifact("config.yaml", artifact_path = "config")
+        mlflow.log_artifact("config/config.yaml", artifact_path = "config")
         
         actual_epoch = train(
             epochs = epochs,

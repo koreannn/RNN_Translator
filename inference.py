@@ -385,7 +385,7 @@ if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "mps"
     logger.info(f"device: {device}")
     # logger.add(f"logs/{wandb_exp_name}", encoding = "utf-8")
-    config = load_config("config.yaml")
+    config = load_config("config/config.yaml")
     
     # 난수 고정
     random.seed(config["seed"])
