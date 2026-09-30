@@ -198,26 +198,6 @@ def train(
                 all_ground_truth.extend(s.strip() for s in en_tokenizer.batch_decode(tgt_label, skip_special_tokens = True))
                 if len(all_yhat) >= valid_bleu_sample_size:
                     break
-                # # BLEU 집계
-                # _, enc_hidden = seq2seq_model.encoder(src_ids)
-                # for i in range(src_ids.size(0)):
-                #     dec_hidden = enc_hidden[:, i:i + 1, :]
-                #     dec_input = torch.tensor([[sos_token_id]], device = device)
-                    
-                #     generated_ids = [sos_token_id]
-                    
-                #     for _ in range(max_n_token):
-                #         logits_step, dec_hidden = seq2seq_model.decoder(dec_input, dec_hidden)
-                #         next_id = int(torch.argmax(logits_step[:, -1, :], dim = -1).item())
-                #         generated_ids.append(next_id)
-                #         if next_id == eos_token_id:
-                #             break
-                #         dec_input = torch.tensor([[next_id]], device = device)
-                        
-                #     hyp = en_tokenizer.decode(generated_ids, skip_special_tokens = True).strip()
-                #     ref = en_tokenizer.decode(tgt_label[i].tolist(), skip_special_tokens = True).strip()
-                #     all_yhat.append(hyp)
-                #     all_ground_truth.append(ref)
 
         valid_avg_loss = valid_loss_sum / max(1, valid_steps)
         
@@ -343,7 +323,15 @@ if __name__ == "__main__":
     seq2seq = Seq2Seq(encoder, decoder).to(device)
 
     
-    with mlflow.start_run(run_name = wandb_exp_name):
+    with mlflow.start_run(
+        run_name = config["mlflow"].get("run_name"),
+        description = config["mlflow"].get("run_description"),
+        tags = {
+            "run_type": "train",
+            "gpu": torch.cuda.get_device_name(0) if device == "cuda" else device,
+            **config["mlflow"].get("tags", {}),
+        }
+        ):
         start_time = time.time()
         
         mlflow.log_params({
@@ -367,6 +355,7 @@ if __name__ == "__main__":
             "lr_rnn_attn_fc": rnn_attn_fc_lr,
         })
         mlflow.log_artifact("config/config.yaml", artifact_path = "config")
+        mlflow.log_params({f"data.{k}": v for k, v in config["data"].items()})
         
         actual_epoch = train(
             epochs = epochs,
