@@ -28,3 +28,6 @@ uv.lock
 # 테스트용 파일
 note.py
 *.ipynb
+
+# claude
+docs
