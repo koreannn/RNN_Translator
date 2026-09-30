@@ -402,8 +402,8 @@ if __name__ == "__main__":
             best_ckpt.pop("optimizer_state_dict")  # 추론에는 불필요 (용량의 약 2/3)
             with tempfile.TemporaryDirectory() as tmp_dir:
                 weights_path = Path(tmp_dir) / "best_weights.pt"
-                torch.save(best_ckpt, "checkpoints/best_weights.pt")
-                mlflow.log_artifact("checkpoints/best_weights.pt", artifact_path = "checkpoints")
+                torch.save(best_ckpt, weights_path)
+                mlflow.log_artifact(str(weights_path), artifact_path = "checkpoints")
 
         mlflow.log_artifact(log_path, artifact_path = "logs")
     
