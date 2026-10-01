@@ -88,6 +88,13 @@ class CustomDataLoader:
         
         return src_ids, tgt_input, tgt_label # (bs, seq_len(logest)) / (bs, seq_len(logest)) / (bs, seq_len(logest))
     
+    def _collate_fn_with_text(self, batch): # test용(평가에 쓸 원본 텍스트도 함께 반환
+        src_ids, tgt_input, tgt_label = self._collate_fn(batch)
+        src_text = [src for src, _ in batch]
+        tgt_text = [tgt for _, tgt in batch]
+        return src_ids, tgt_input, tgt_label, src_text, tgt_text
+    
+    
     def get_data_loader(self):
         train_dataloader = DataLoader(
             self.train_data,
