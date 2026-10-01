@@ -109,8 +109,8 @@ def greedy_search( # greedy방식으로 하나씩 추론
         raise ValueError("영어 토크나이저는 반드시 cls_token과 sep_token이 있어야합니다.")
     
     all_yhat = [] # 번역된 문장 전체를 담고있는 리스트
-    all_ground_truth = [] # 토크나이저 -> 인코딩을 거쳐 만들어진 gt
-    all_source = [] # 원문 그 자체
+    all_ground_truth = [] # 원본 정답 문장(영어)
+    all_source = [] # 원본 입력 문장(한국어)
     
     for batch_idx, (src_ids, _, _, src_text, tgt_text) in enumerate(test_dataloader): # 학습할때는 (src_ids, tgt_input, tgt_label) / 추론 시에는 오직 자신이 만든 토큰으로 다음 토큰을 예측해야함 -> (src_ids, _, _)
         with torch.no_grad():
@@ -140,7 +140,7 @@ def greedy_search( # greedy방식으로 하나씩 추론
             batch_translated = []
             for i in range(bs):
                 translated = en_tokenizer.decode(generated[i].tolist(), skip_special_tokens = True).strip()
-                ground_truth = en_tokenizer.decode(tgt_label[i].tolist(), skip_special_tokens = True).strip()
+                ground_truth = tgt_text[i]
                 all_yhat.append(translated)
                 all_ground_truth.append(ground_truth)
                 all_source.append(src_text[i])
@@ -281,7 +281,7 @@ def beam_search(
                 completed_beams.sort(key = lambda x: x[0], reverse = True)
                 best_seq     = completed_beams[0][1]
                 translated   = en_tokenizer.decode(best_seq, skip_special_tokens = True).strip()
-                ground_truth = en_tokenizer.decode(tgt_label[i].tolist(), skip_special_tokens = True).strip()
+                ground_truth = tgt_text[i]
 
                 all_yhat.append(translated)
                 all_ground_truth.append(ground_truth)
@@ -370,7 +370,7 @@ def hybrid_sampling(
                     dec_input = torch.tensor([[next_id]], dtype = torch.long, device = device)
 
                 translated = en_tokenizer.decode(generated_ids, skip_special_tokens = True).strip()
-                ground_truth = en_tokenizer.decode(tgt_label[i].tolist(), skip_special_tokens = True).strip()
+                ground_truth = tgt_text[i]
                 all_yhat.append(translated)
                 all_ground_truth.append(ground_truth)
                 all_source.append(src_text[i])
