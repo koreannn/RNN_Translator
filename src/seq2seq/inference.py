@@ -11,6 +11,7 @@ from pathlib import Path
 from utils import load_config
 from transformers import AutoTokenizer
 from model import Encoder, Decoder, Seq2Seq
+from decoding import get_special_token_ids, greedy_decoding
 from dataloader import CustomDataLoader
 
 def load_checkpoint(path, device):
@@ -49,46 +50,23 @@ def translate_sentence( # Streamlit 대시보드용
     max_length,
     max_new_tokens,
 ):
-    sos_token_id = en_tokenizer.cls_token_id
-    eos_token_id = en_tokenizer.sep_token_id
-    pad_token_id = en_tokenizer.pad_token_id if en_tokenizer.pad_token_id is not None else eos_token_id
-
-    if sos_token_id is None or eos_token_id is None:
-        raise ValueError("영어 토크나이저는 반드시 cls_token과 sep_token이 있어야합니다.")
-
+    ids = get_special_token_ids(kor_tokenizer, en_tokenizer)
     model.eval()
-    with torch.no_grad():
-        src_enc = kor_tokenizer(
-            text,
-            truncation = True,
-            max_length = max_length,
-            return_tensors = "pt",
-        )
-        src_ids = src_enc["input_ids"].to(device)
-
-        encoder_outputs, enc_hidden = model.encoder(src_ids)
-        src_mask = (src_ids != kor_tokenizer.pad_token_id)
-        dec_hidden = enc_hidden
-        dec_input = torch.full((1, 1), sos_token_id, dtype = torch.long, device = device)
-
-        generated = dec_input.clone()
-        finished = torch.zeros(1, dtype = torch.bool, device = device)
-
-        for _ in range(max_new_tokens):
-            logits, dec_hidden, _ = model.decoder(dec_input, dec_hidden, encoder_outputs, src_mask)
-            next_ids = torch.argmax(logits[:, -1, :], dim = -1)
-            next_ids = torch.where(finished, torch.full_like(next_ids, pad_token_id), next_ids)
-
-            generated = torch.cat([generated, next_ids.unsqueeze(1)], dim = 1)
-            finished = finished | (next_ids == eos_token_id)
-
-            if finished.all() or generated.size(1) > max_length:
-                break
-            dec_input = next_ids.unsqueeze(1)
-
-        translated = en_tokenizer.decode(generated[0].tolist(), skip_special_tokens = True).strip()
-
-    return translated
+    
+    src_ids = kor_tokenizer(
+        text,
+        truncation = True,
+        max_length = max_length,
+        return_tensors = "pt",
+    )["input_ids"].to(device)
+    gen_ids = greedy_decoding(
+        model,
+        src_ids,
+        max_new_tokens = max_new_tokens,
+        **ids,
+    )
+    
+    return en_tokenizer.decode(gen_ids[0], skip_special_tokens = True).strip()
 
 
 def greedy_search( # greedy방식으로 하나씩 추론
@@ -101,13 +79,8 @@ def greedy_search( # greedy방식으로 하나씩 추론
     max_new_tokens,
     sample_size = None,
 ):
-    sos_token_id = en_tokenizer.cls_token_id
-    eos_token_id = en_tokenizer.sep_token_id
-    pad_token_id = en_tokenizer.pad_token_id if en_tokenizer.pad_token_id is not None else eos_token_id
     
-    if sos_token_id is None or eos_token_id is None:
-        raise ValueError("영어 토크나이저는 반드시 cls_token과 sep_token이 있어야합니다.")
-    
+    ids = get_special_token_ids(kor_tokenizer, en_tokenizer)
     all_yhat = [] # 번역된 문장 전체를 담고있는 리스트
     all_ground_truth = [] # 원본 정답 문장(영어)
     all_source = [] # 원본 입력 문장(한국어)

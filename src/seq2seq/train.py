@@ -18,37 +18,7 @@ from loguru import logger
 from dataloader import CustomDataLoader
 from model import Encoder, Decoder, Seq2Seq
 from utils import load_config
-
-def greedy_decode_batch( # valid 배치에 대한 BLEU 집계용
-    seq2seq_model,
-    src_ids,
-    sos_token_id,
-    eos_token_id,
-    pad_token_id,
-    max_new_token,
-    device,
-):
-    encoder_outputs, dec_hidden = seq2seq_model.encoder(src_ids)
-    src_mask = (src_ids != pad_token_id)
-    batch_size = src_ids.size(0)
-    
-    dec_input = torch.full((batch_size, 1), sos_token_id, dtype = torch.long, device = device)
-    finished = torch.zeros(batch_size, dtype = torch.bool, device = device) # 배치 내의 각 샘플이 EOS에 도달했는지 체크하기 위한 용도
-    generated = []
-    
-    for _ in range(max_new_token):
-        logits_step, dec_hidden, _ = seq2seq_model.decoder(dec_input, dec_hidden, encoder_outputs, src_mask)
-        next_ids = torch.argmax(logits_step[:, -1, :], dim = -1)
-        next_ids = next_ids.masked_fill(finished, pad_token_id)
-        generated.append(next_ids)
-        
-        finished = finished | (next_ids == eos_token_id)
-        if finished.all(): # 배치 내 모든 문장이 EOS에 도달했을 경우
-            break
-        dec_input = next_ids.unsqueeze(1) # (bs, 1)
-        
-    return torch.stack(generated, dim = 1) # (bs, gen_len)
-
+from decoding import greedy_decoding
 
 def train(
     epochs, patience, min_delta, lr, embedding_lr, batch_size, embedding_dim, hidden_dim, grad_clip_max_norm,
@@ -189,10 +159,10 @@ def train(
                 
             for src_ids, _, tgt_label in valid_loader:
                 src_ids = src_ids.to(device)
-                gen_ids = greedy_decode_batch(
+                gen_ids = greedy_decoding(
                     seq2seq_model, src_ids,
-                    sos_token_id, eos_token_id, pad_token_id,
-                    max_n_token, device,
+                    max_new_tokens = max_n_token,
+                    **special_ids,
                 )
                 all_yhat.extend(s.strip() for s in en_tokenizer.batch_decode(gen_ids, skip_special_tokens = True))
                 all_ground_truth.extend(s.strip() for s in en_tokenizer.batch_decode(tgt_label, skip_special_tokens = True))
