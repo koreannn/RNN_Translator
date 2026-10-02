@@ -10,7 +10,7 @@ from transformers import AutoTokenizer
 from src.seq2seq.model import build_model
 from src.seq2seq.utils import load_config, resolve_device, set_seed
 from src.seq2seq.decoding import get_special_token_ids, greedy_decoding, beam_decoding, sampling_decoding
-from src.seq2seq.evaluation import compute_bleu
+from src.seq2seq.evaluation.metrics import evaluate
 from src.seq2seq.dataloader import CustomDataLoader
 
 def load_checkpoint(path, device):
@@ -213,7 +213,7 @@ if __name__ == "__main__":
     elapsed = time.time() - start_time # 디코딩 시간만 측정 (저장·평가 제외)
 
     save_predictions(records, f"outputs/predictions/{Path(model_checkpoint_path).stem}-{strategy}.jsonl")
-    bleu_score = compute_bleu([r["hypothesis"] for r in records], [r["reference"] for r in records])
+    bleu_score = evaluate([r["hypothesis"] for r in records], [r["reference"] for r in records])
     logger.info(f"Test corpus BLEU 점수({strategy}): {bleu_score:.2f}")
     
     wandb.log(
