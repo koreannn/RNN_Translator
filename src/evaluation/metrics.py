@@ -24,9 +24,8 @@ def _load_comet_model():
 
 def compute_comet(sources, hypotheses, references, batch_size = 32):
     # 대소문자를 그대로 둠: 의미 기반 지표이고, 대문자를 못 쓰는 것도 실제 번역 품질의 일부이므로
-    from comet import download_model, load_from_checkpoint # 무거운 패키지라 쓸 때만 import
 
-    model = load_from_checkpoint(download_model(COMET_MODEL_NAME))
+    model = _load_comet_model() # 첫 호출때만 로드하고, 이후엔 캐시된 모델 재사용
     data = [{"src": s, "mt": h, "ref": r} for s, h, r in zip(sources, hypotheses, references)]
     output = model.predict(data, batch_size = batch_size, gpus = 1 if torch.cuda.is_available() else 0)
     return output.system_score # 0~1 사이 (문장별 점수는 output.scores)
