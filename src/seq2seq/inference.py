@@ -1,5 +1,6 @@
 import time
 import random
+import json
 import torch
 import wandb
 
@@ -138,6 +139,17 @@ def generate_predictions( # test 로더를 돌며 번역 결과를 records로 �
     return records
 
 
+def save_predictions(records, path):
+    path = Path(path)
+    path.parent.mkdir(parents = True, exist_ok = True)
+    
+    with open(path, "w", encoding = "utf-8") as f:
+        for record in records:
+            f.write(json.dumps(record, ensure_ascii = False) + "\n")
+    
+    logger.info(f"예측 결과 저장: {path} ({len(records)} 문장)")
+
+
 if __name__ == "__main__":
     device = resolve_device()
     logger.info(f"device: {device}")
@@ -181,54 +193,28 @@ if __name__ == "__main__":
     dataloader = CustomDataLoader(kor_tokenizer, en_tokenizer, max_length = max_length, batch_size = batch_size)
     _, _, test_dataloader = dataloader.get_data_loader() # test의 데이터로더는 1개씩 들어가도록 고정되어있음
     
+    strategy = config["inference"]["decoding_strategy"]
+    decode_kwargs = config["inference"].get(strategy, {}) # greedy는 하이퍼파라미터 섹션이 없으므로 {}
+    sample_size = config["inference"]["sample_size"]
+
     start_time = time.time()
-    # TODO(1-5): 디코딩 전략·하이퍼파라미터를 config로 옮기고 한 번에 하나만 실행
-    # greedy search
     records = generate_predictions(
         model,
         kor_tokenizer,
         en_tokenizer,
         device,
         test_dataloader,
-        strategy = "greedy",
+        strategy = strategy,
         max_length = max_length,
         max_new_tokens = max_n_token,
-        sample_size = 1000,
+        decode_kwargs = decode_kwargs,
+        sample_size = sample_size,
     )
+    elapsed = time.time() - start_time # 디코딩 시간만 측정 (저장·평가 제외)
+
+    save_predictions(records, f"outputs/predictions/{Path(model_checkpoint_path).stem}-{strategy}.jsonl")
     bleu_score = compute_bleu([r["hypothesis"] for r in records], [r["reference"] for r in records])
-    logger.info(f"Test corpus BLEU 점수(greedy): {bleu_score:.2f}")
-
-    # # beam search
-    # records = generate_predictions(
-    #     model,
-    #     kor_tokenizer,
-    #     en_tokenizer,
-    #     device,
-    #     test_dataloader,
-    #     strategy = "beam",
-    #     max_length = max_length,
-    #     max_new_tokens = max_n_token,
-    #     decode_kwargs = {"beam_size": 4, "alpha": 0.6},
-    #     sample_size = 1000,
-    # )
-
-    # hybrid sampling
-    records = generate_predictions(
-        model,
-        kor_tokenizer,
-        en_tokenizer,
-        device,
-        test_dataloader,
-        strategy = "hybrid",
-        max_length = max_length,
-        max_new_tokens = max_n_token,
-        decode_kwargs = {"temperature": 0.8, "top_k": 50, "top_p": 0.9},
-        sample_size = 1000,
-    )
-    bleu_score = compute_bleu([r["hypothesis"] for r in records], [r["reference"] for r in records])
-    logger.info(f"Test corpus BLEU 점수(hybrid): {bleu_score:.2f}")
-
-    elapsed = time.time() - start_time
+    logger.info(f"Test corpus BLEU 점수({strategy}): {bleu_score:.2f}")
     
     wandb.log(
         {

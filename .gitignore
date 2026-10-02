@@ -19,6 +19,7 @@ wandb
 .vscode
 *.log
 logs
+outputs
 
 
 # uv 가상환경 및 패키지 푸시 방지

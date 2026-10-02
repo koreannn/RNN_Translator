@@ -45,6 +45,15 @@ inference:
   max_new_token: 400
   batch_size: 4
   checkpoint_path: "checkpoints/best.pt"
+  decoding_strategy: greedy # greedy / beam / hybrid
+  sample_size: 1000 # null일 경우 test셋 전체
+  beam:
+    beam_size: 4
+    alpha: 0.6
+  hybrid:
+    temperature: 0.8
+    top_k: 50
+    top_p: 0.9
 
 model:
   kor_tokenizer: "klue/bert-base"
