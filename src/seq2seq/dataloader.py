@@ -88,7 +88,7 @@ class CustomDataLoader:
         
         return src_ids, tgt_input, tgt_label # (bs, seq_len(logest)) / (bs, seq_len(logest)) / (bs, seq_len(logest))
     
-    def collate_fn_with_text(self, batch):
+    def _collate_fn_with_text(self, batch):
         src_ids, tgt_input, tgt_label = self._collate_fn(batch)
         src_text = [src for src, _ in batch]
         tgt_text = [tgt for _, tgt in batch]
