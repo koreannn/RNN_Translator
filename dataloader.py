@@ -87,7 +87,7 @@ class CustomDataLoader:
         
         return src_ids, tgt_input, tgt_label # (bs, seq_len(logest)) / (bs, seq_len(logest)) / (bs, seq_len(logest))
     
-    def _collate_fn_with_text(self, batch): # test용(평가에 쓸 원본 텍스트도 함께 반환
+    def _collate_fn_with_text(self, batch): # valid/test용(BLEU 평가에 쓸 원본 텍스트도 함께 반환)
         src_ids, tgt_input, tgt_label = self._collate_fn(batch)
         src_text = [src for src, _ in batch]
         tgt_text = [tgt for _, tgt in batch]
@@ -111,7 +111,7 @@ class CustomDataLoader:
             batch_size = self.batch_size,
             shuffle = False,
             num_workers = 1,
-            collate_fn = self._collate_fn,
+            collate_fn = self._collate_fn_with_text,
             drop_last = True,
             pin_memory = torch.cuda.is_available(),
             generator = self.shuffle_generator,

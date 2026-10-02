@@ -1,45 +1,47 @@
 import time
 import random
 import torch
-
 import wandb
-import sacrebleu
 
 from loguru import logger
 from pathlib import Path
+from transformers import AutoTokenizer
 from src.seq2seq.model import build_model
 from src.seq2seq.utils import load_config, resolve_device, set_seed
-from transformers import AutoTokenizer
-
 from src.seq2seq.decoding import get_special_token_ids, greedy_decoding
+from src.seq2seq.evaluation import compute_bleu
 from dataloader import CustomDataLoader
 
 def load_checkpoint(path, device):
     checkpoint = torch.load(path, map_location = device)
-    
-    required = ["seq2seq_state_dict", "embedding_dim", "hidden_dim", "kor_vocab_size", "en_vocab_size"]
-    missing = [k for k in required if k not in checkpoint]
-    
-    if missing:
-        raise KeyError(f"Missiong keys in checkpoint: {missing}")
+    get_model_config(checkpoint) # 모델 복원에 필요한 키가 모두 있는지 미리 검증
+
+    if "seq2seq_state_dict" not in checkpoint:
+        raise KeyError("Missing keys in checkpoint: ['seq2seq_state_dict']")
     return checkpoint
-    
+
+def get_model_config(checkpoint):
+    if "model_config" in checkpoint:
+        return checkpoint["model_config"]
+
+    # 구버전 체크포인트 호환 (모델 구조 정보가 최상위 키로 흩어져 저장되던 형식)
+    required = ["embedding_dim", "hidden_dim", "kor_vocab_size", "en_vocab_size"]
+    missing = [k for k in required if k not in checkpoint]
+    if missing:
+        raise KeyError(f"Missing keys in checkpoint: {missing}")
+
+    return {
+        "kor_vocab_size": int(checkpoint["kor_vocab_size"]),
+        "en_vocab_size": int(checkpoint["en_vocab_size"]),
+        "embedding_dim": int(checkpoint["embedding_dim"]),
+        "hidden_dim": int(checkpoint["hidden_dim"]),
+        "init_scheme": checkpoint.get("init_scheme", "default"),
+        "use_layer_norm": checkpoint.get("use_layer_norm", False),
+        "padding_id": int(checkpoint.get("pad_token_id", 0)),
+    }
+
 def get_model_from_checkpoint(checkpoint, device):
-    embedding_dim = int(checkpoint["embedding_dim"])
-    hidden_dim = int(checkpoint["hidden_dim"])
-    kor_vocab_size = int(checkpoint["kor_vocab_size"])
-    en_vocab_size = int(checkpoint["en_vocab_size"])
-    use_ln = checkpoint.get("use_layer_norm", False)
-    init_scheme = checkpoint.get("init_scheme", "default")
-    
-    model = build_model(
-        kor_vocab_size, en_vocab_size, embedding_dim, hidden_dim,
-        init_scheme = init_scheme,
-        use_layer_norm = use_ln,
-        padding_id = int(checkpoint.get("pad_token_id", 0)),
-    )
-    
-    
+    model = build_model(**get_model_config(checkpoint))
     model.load_state_dict(checkpoint["seq2seq_state_dict"], strict = True)
     model.to(device)
     model.eval()
@@ -110,10 +112,10 @@ def greedy_search( # greedy방식으로 하나씩 추론
         if sample_size is not None and len(all_yhat) >= sample_size:
             break
                 
-    bleu_result = sacrebleu.corpus_bleu(all_yhat, [all_ground_truth], lowercase = True)
-    logger.info(f"Test corpus BLEU 점수: {bleu_result.score:.2f}")
+    bleu_score = compute_bleu(all_yhat, all_ground_truth)
+    logger.info(f"Test corpus BLEU 점수: {bleu_score:.2f}")
     
-    return bleu_result.score
+    return bleu_score
 
 def beam_search(
     model,
@@ -245,10 +247,10 @@ def beam_search(
                 all_source.append(src_text[i])
                 logger.info(f"번역된 문장(1위, Normalized Score: {completed_beams[0][0]:.3f}): {translated}")
 
-    bleu_result = sacrebleu.corpus_bleu(all_yhat, [all_ground_truth], lowercase = True)
-    logger.info(f"Test corpus BLEU 점수: {bleu_result.score:.2f}")
+    bleu_score = compute_bleu(all_yhat, all_ground_truth)
+    logger.info(f"Test corpus BLEU 점수: {bleu_score:.2f}")
 
-    return bleu_result.score
+    return bleu_score
 
 
 def hybrid_sampling(
@@ -337,10 +339,10 @@ def hybrid_sampling(
         if sample_size is not None and len(all_yhat) >= sample_size:
             break
 
-    bleu_result = sacrebleu.corpus_bleu(all_yhat, [all_ground_truth], lowercase = True)
-    logger.info(f"Test corpus BLEU 점수: {bleu_result.score:.2f}")
+    bleu_score = compute_bleu(all_yhat, all_ground_truth)
+    logger.info(f"Test corpus BLEU 점수: {bleu_score:.2f}")
 
-    return bleu_result.score
+    return bleu_score
 
 
 if __name__ == "__main__":
