@@ -54,6 +54,8 @@ inference:
     temperature: 0.8
     top_k: 50
     top_p: 0.9
+  evaluation:
+    use_comet: true
 
 model:
   kor_tokenizer: "klue/bert-base"

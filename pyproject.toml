@@ -22,8 +22,9 @@ dependencies = [
     "streamlit>=1.52.2",
     "matplotlib>=3.11.0",
     "triton>=3.2.0; sys_platform=='linux'",
-    "setuptools>=84.0.0",
+    "setuptools>=70,<81", # unbabel-comet → torchmetrics 0.10이 pkg_resources(81에서 제거)를 사용
     "mlflow>=3.16.1",
+    "unbabel-comet>=2.2.7",
 ]
 
 [tool.uv]

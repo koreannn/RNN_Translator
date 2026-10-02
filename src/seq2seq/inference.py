@@ -196,6 +196,7 @@ if __name__ == "__main__":
     strategy = config["inference"]["decoding_strategy"]
     decode_kwargs = config["inference"].get(strategy, {}) # greedy는 하이퍼파라미터 섹션이 없으므로 {}
     sample_size = config["inference"]["sample_size"]
+    use_comet = config["inference"].get("evaluation", {}).get("use_comet", False) # COMET은 GPU 권장 (CPU에선 매우 느림)
 
     start_time = time.time()
     records = generate_predictions(
@@ -213,17 +214,15 @@ if __name__ == "__main__":
     elapsed = time.time() - start_time # 디코딩 시간만 측정 (저장·평가 제외)
 
     save_predictions(records, f"outputs/predictions/{Path(model_checkpoint_path).stem}-{strategy}.jsonl")
-    metrics = evaluate(records)
-    bleu_score = metrics["bleu"]
-    logger.info(f"Test 평가 결과({strategy}): {metrics}")
-    
+    metrics = evaluate(records, use_comet = use_comet)
+    logger.info(f"Test 평가 결과({strategy}): " + ", ".join(f"{k} = {v:.4f}" for k, v in metrics.items()))
+
     wandb.log(
         {
             "inference_time_sec": elapsed,
-            "inference_bleu": bleu_score,
+            **{f"test_{k}": v for k, v in metrics.items()}, # test_bleu, test_chrf, (test_comet) — LLM run과 같은 이름 사용
         }
     )
     wandb.finish()
-    logger.info(f"최종 BLEU Score: {bleu_score:.2f}")   
     logger.info(f"Total Inference Time: {elapsed:.2f}초")
     
