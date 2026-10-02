@@ -25,6 +25,7 @@ dependencies = [
     "setuptools>=70,<81", # unbabel-comet → torchmetrics 0.10이 pkg_resources(81에서 제거)를 사용
     "mlflow>=3.16.1",
     "unbabel-comet>=2.2.7",
+    "hf-transfer>=0.1.9",
 ]
 
 [tool.uv]
