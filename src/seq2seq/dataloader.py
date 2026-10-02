@@ -111,7 +111,7 @@ class CustomDataLoader:
             batch_size = self.batch_size,
             shuffle = False,
             num_workers = 1,
-            collate_fn = self._collate_fn,
+            collate_fn = self._collate_fn_with_text,
             drop_last = True,
             pin_memory = torch.cuda.is_available(),
             generator = self.shuffle_generator,

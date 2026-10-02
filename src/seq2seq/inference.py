@@ -11,6 +11,7 @@ from src.seq2seq.model import build_model
 from src.seq2seq.utils import load_config, resolve_device, set_seed
 from src.seq2seq.decoding import get_special_token_ids, greedy_decoding, beam_decoding, sampling_decoding
 from src.evaluation.metrics import evaluate
+from src.evaluation.efficiency import count_parameters
 from src.seq2seq.dataloader import CustomDataLoader
 
 def load_checkpoint(path, device):
@@ -189,6 +190,8 @@ if __name__ == "__main__":
     logger.info(f"Loaded checkpoint from {model_checkpoint_path}")
     
     model = get_model_from_checkpoint(model, device = device)
+    param_stats = count_parameters(model)
+    logger.info(f"# of model param: {param_stats['num_params']:,}")
     
     dataloader = CustomDataLoader(kor_tokenizer, en_tokenizer, max_length = max_length, batch_size = batch_size)
     _, _, test_dataloader = dataloader.get_data_loader() # test의 데이터로더는 1개씩 들어가도록 고정되어있음
@@ -197,6 +200,8 @@ if __name__ == "__main__":
     decode_kwargs = config["inference"].get(strategy, {}) # greedy는 하이퍼파라미터 섹션이 없으므로 {}
     sample_size = config["inference"]["sample_size"]
     use_comet = config["inference"].get("evaluation", {}).get("use_comet", False) # COMET은 GPU 권장 (CPU에선 매우 느림)
+    
+    torch.cuda.reset_peak_memory_stats()
 
     start_time = time.time()
     records = generate_predictions(
@@ -212,6 +217,7 @@ if __name__ == "__main__":
         sample_size = sample_size,
     )
     elapsed = time.time() - start_time # 디코딩 시간만 측정 (저장·평가 제외)
+    torch.cuda.max_memory_allocated()
 
     save_predictions(records, f"outputs/predictions/{Path(model_checkpoint_path).stem}-{strategy}.jsonl")
     metrics = evaluate(records, use_comet = use_comet)
@@ -221,6 +227,7 @@ if __name__ == "__main__":
         {
             "inference_time_sec": elapsed,
             **{f"test_{k}": v for k, v in metrics.items()}, # test_bleu, test_chrf, (test_comet) — LLM run과 같은 이름 사용
+            **param_stats, # num_params, num_trainable_params
         }
     )
     wandb.finish()
