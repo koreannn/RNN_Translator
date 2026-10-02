@@ -1,7 +1,7 @@
 import pandas as pd
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split, ConcatDataset
-from utils import load_config
+from src.seq2seq.utils import load_config
 from datasets import load_dataset
 
 

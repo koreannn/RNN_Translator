@@ -38,3 +38,11 @@ explicit = true  # torch에만 적용, 나머지는 PyPI 사용
 torch = [
     { index = "pytorch-cu124", marker = "sys_platform == 'linux'"},
 ]
+
+# 프로젝트 자체를 editable 패키지로 설치 → 어디서 실행하든 `from src.xxx import` 가능
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
