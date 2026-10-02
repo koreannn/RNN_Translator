@@ -3,28 +3,28 @@
 """
 import time
 import tempfile
-import random
+
 import torch
 import torch.nn.functional as F
 import wandb
 import mlflow
 import sacrebleu
-import numpy as np
+
 
 from pathlib import Path
 from transformers import AutoTokenizer, AutoModel
 from torch.optim import Adam
 from loguru import logger
 from dataloader import CustomDataLoader
-from model import Encoder, Decoder, Seq2Seq
-from utils import load_config
-from decoding import greedy_decoding
+from src.seq2seq.model import build_model
+from src.seq2seq.utils import load_config, resolve_device, set_seed
+from src.seq2seq.decoding import get_special_token_ids, greedy_decoding
 
 def train(
     epochs, patience, min_delta, lr, embedding_lr, batch_size, embedding_dim, hidden_dim, grad_clip_max_norm,
     train_loader, valid_loader, valid_bleu_sample_size,
     use_layer_norm, init_scheme,
-    kor_vocab_size, en_vocab_size, en_tokenizer, max_new_token,
+    kor_vocab_size, en_vocab_size, kor_tokenizer, en_tokenizer, max_new_token,
     seq2seq_model,
     device, wandb_project_name,
     wandb_entity, wandb_project, wandb_architecture,
@@ -85,10 +85,8 @@ def train(
     wandb.define_metric('train/step')
     wandb.define_metric('train/grad_norm_*', step_metric = 'train/step')
 
-    sos_token_id= en_tokenizer.cls_token_id
-    eos_token_id = en_tokenizer.sep_token_id
-    max_n_token = max_new_token # 새로 생성할 토큰의 최대 개수
-    
+    special_ids = get_special_token_ids(kor_tokenizer, en_tokenizer)
+
     train_start_time = time.time()
     global_step = 0 # 전체 에포크의 배치 스텝
     for epoch in range(epochs):
@@ -161,7 +159,7 @@ def train(
                 src_ids = src_ids.to(device)
                 gen_ids = greedy_decoding(
                     seq2seq_model, src_ids,
-                    max_new_tokens = max_n_token,
+                    max_new_tokens = max_new_token,
                     **special_ids,
                 )
                 all_yhat.extend(s.strip() for s in en_tokenizer.batch_decode(gen_ids, skip_special_tokens = True))
@@ -216,14 +214,10 @@ def train(
 
 if __name__ == "__main__":
     config = load_config("config/config.yaml")
-    device = "cuda" if torch.cuda.is_available() else "mps"
+    device = resolve_device()
 
     # 난수 고정
-    random.seed(config["seed"])
-    np.random.seed(config["seed"])
-    torch.manual_seed(config["seed"])
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
+    set_seed(config["seed"])
 
     # h_param
     model_architecture = config["train"]["model_architecture"]
@@ -272,25 +266,16 @@ if __name__ == "__main__":
 
     logger.info(f"device: {device}")
 
-    encoder = Encoder(
-        vocab_size = kor_vocab_size,
+    seq2seq = build_model(
+        kor_vocab_size = kor_vocab_size,
+        en_vocab_size = en_vocab_size,
         embedding_dim = embedding_dim,
         hidden_dim = hidden_dim,
-        pretrained_weight = kor_pretrained_weight,
         init_scheme = init_scheme,
-        use_layer_norm = use_layer_norm
-        ).to(device)
-    
-    decoder = Decoder(
-        vocab_size = en_vocab_size, 
-        embedding_dim = embedding_dim,
-        hidden_dim = hidden_dim,
-        pretrained_weight = en_pretrained_weight,
-        init_scheme = init_scheme,
-        use_layer_norm = use_layer_norm
-        ).to(device)
-    
-    seq2seq = Seq2Seq(encoder, decoder).to(device)
+        use_layer_norm = use_layer_norm,
+        kor_pretrained_weight = kor_pretrained_weight,
+        en_pretrained_weight = en_pretrained_weight,
+    ).to(device)
 
     
     with mlflow.start_run(
@@ -344,6 +329,7 @@ if __name__ == "__main__":
             init_scheme = init_scheme,
             kor_vocab_size = kor_vocab_size,
             en_vocab_size = en_vocab_size,
+            kor_tokenizer = kor_tokenizer,
             en_tokenizer = en_tokenizer,
             max_new_token = max_new_token,
             seq2seq_model = seq2seq,

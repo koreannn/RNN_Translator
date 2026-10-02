@@ -1,21 +1,12 @@
-import torch
 import streamlit as st
 from transformers import AutoTokenizer
 
-from utils import load_config
-from inference import load_checkpoint, get_model_from_checkpoint, translate_sentence
+from src.seq2seq.utils import load_config, resolve_device
+from src.seq2seq.inference import load_checkpoint, get_model_from_checkpoint, translate_sentence
 
 CONFIG_PATH = "config/config.yaml"
 
 st.title("문장 번역기 테스트해보기")
-
-
-def resolve_device():
-    if torch.cuda.is_available():
-        return "cuda"
-    if torch.backends.mps.is_available():
-        return "mps"
-    return "cpu"
 
 
 @st.cache_resource(show_spinner = "모델을 불러오는 중입니다...")

@@ -1,17 +1,17 @@
 import time
 import random
 import torch
-import pandas as pd
-import numpy as np
+
 import wandb
 import sacrebleu
 
 from loguru import logger
 from pathlib import Path
-from utils import load_config
+from src.seq2seq.model import build_model
+from src.seq2seq.utils import load_config, resolve_device, set_seed
 from transformers import AutoTokenizer
-from model import Encoder, Decoder, Seq2Seq
-from decoding import get_special_token_ids, greedy_decoding
+
+from src.seq2seq.decoding import get_special_token_ids, greedy_decoding
 from dataloader import CustomDataLoader
 
 def load_checkpoint(path, device):
@@ -32,9 +32,13 @@ def get_model_from_checkpoint(checkpoint, device):
     use_ln = checkpoint.get("use_layer_norm", False)
     init_scheme = checkpoint.get("init_scheme", "default")
     
-    encoder = Encoder(kor_vocab_size, embedding_dim, hidden_dim, init_scheme = init_scheme, use_layer_norm = use_ln)
-    decoder = Decoder(en_vocab_size, embedding_dim, hidden_dim, init_scheme = init_scheme, use_layer_norm = use_ln)
-    model = Seq2Seq(encoder, decoder, padding_id = int(checkpoint.get("pad_token_id", 0)))
+    model = build_model(
+        kor_vocab_size, en_vocab_size, embedding_dim, hidden_dim,
+        init_scheme = init_scheme,
+        use_layer_norm = use_ln,
+        padding_id = int(checkpoint.get("pad_token_id", 0)),
+    )
+    
     
     model.load_state_dict(checkpoint["seq2seq_state_dict"], strict = True)
     model.to(device)
@@ -86,42 +90,22 @@ def greedy_search( # greedy방식으로 하나씩 추론
     all_source = [] # 원본 입력 문장(한국어)
     
     for batch_idx, (src_ids, _, _, src_text, tgt_text) in enumerate(test_dataloader): # 학습할때는 (src_ids, tgt_input, tgt_label) / 추론 시에는 오직 자신이 만든 토큰으로 다음 토큰을 예측해야함 -> (src_ids, _, _)
-        with torch.no_grad():
-            src_ids = src_ids.to(device)
-            bs = src_ids.size(0)
-            
-            encoder_outputs, enc_hidden = model.encoder(src_ids) # (1, bs, hidden_dim)
-            src_mask = (src_ids != kor_tokenizer.pad_token_id)
-            dec_hidden = enc_hidden
-            dec_input = torch.full((bs, 1), sos_token_id, dtype = torch.long, device = device)
-            
-            generated = dec_input.clone()
-            finished = torch.zeros(bs, dtype = torch.bool, device = device)
-            
-            for _ in range(max_new_tokens):
-                logits, dec_hidden, _ = model.decoder(dec_input, dec_hidden, encoder_outputs, src_mask) # (bs, 1, vocab_size)
-                next_ids = torch.argmax(logits[:, -1, :], dim = -1) # (bs, )
-                next_ids = torch.where(finished, torch.full_like(next_ids, pad_token_id), next_ids)
-                
-                generated = torch.cat([generated, next_ids.unsqueeze(1)], dim = 1)
-                finished = finished | (next_ids == eos_token_id)
-                
-                if finished.all() or generated.size(1) > max_length:
-                    break
-                dec_input = next_ids.unsqueeze(1)
-            
-            batch_translated = []
-            for i in range(bs):
-                translated = en_tokenizer.decode(generated[i].tolist(), skip_special_tokens = True).strip()
-                ground_truth = tgt_text[i]
-                all_yhat.append(translated)
-                all_ground_truth.append(ground_truth)
-                all_source.append(src_text[i])
-                batch_translated.append(translated)
-        
-        sample_idx = random.randrange(bs)        
-        logger.info(f"번역 전 문장(예시): {kor_tokenizer.decode(src_ids[sample_idx].tolist(), skip_special_tokens = True)}")
-        logger.info(f"번역된 문장(예시): {all_yhat[sample_idx]}")
+        src_ids = src_ids.to(device)
+        gen_ids = greedy_decoding(
+            model,
+            src_ids,
+            max_new_tokens = max_new_tokens,
+            **ids,
+        )
+        batch_translated = [s.strip() for s in en_tokenizer.batch_decode(gen_ids, skip_special_tokens = True)]
+
+        all_yhat.extend(batch_translated)
+        all_ground_truth.extend(tgt_text)
+        all_source.extend(src_text)
+
+        sample_idx = random.randrange(len(batch_translated))
+        logger.info(f"번역 전 문장(예시): {src_text[sample_idx]}")
+        logger.info(f"번역된 문장(예시): {batch_translated[sample_idx]}")
         
         if sample_size is not None and len(all_yhat) >= sample_size:
             break
@@ -360,18 +344,12 @@ def hybrid_sampling(
 
 
 if __name__ == "__main__":
-    device = "cuda" if torch.cuda.is_available() else "mps"
+    device = resolve_device()
     logger.info(f"device: {device}")
     # logger.add(f"logs/{wandb_exp_name}", encoding = "utf-8")
     config = load_config("config/config.yaml")
-    
-    # 난수 고정
-    random.seed(config["seed"])
-    np.random.seed(config["seed"])
-    torch.manual_seed(config["seed"])
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-    
+    set_seed(config["seed"])
+
     # h_param
     max_length = config["inference"]["max_length"]
     max_n_token = config["inference"]["max_new_token"]

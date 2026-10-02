@@ -165,3 +165,13 @@ class Seq2Seq(nn.Module):
         src_mask = (src_ids != self.pad_id)
         logits, _, _ = self.decoder(target_ids, encoder_hidden, encoder_outputs, src_mask)
         return logits
+
+
+def build_model(
+    kor_vocab_size, en_vocab_size, embedding_dim, hidden_dim,
+    init_scheme = 'default', use_layer_norm = False, padding_id = 0,
+    kor_pretrained_weight = None, en_pretrained_weight = None, # 학습 시에만 사용 (추론 시에는 state_dict로 덮어씀)
+):
+    encoder = Encoder(kor_vocab_size, embedding_dim, hidden_dim, kor_pretrained_weight, init_scheme, use_layer_norm)
+    decoder = Decoder(en_vocab_size, embedding_dim, hidden_dim, en_pretrained_weight, init_scheme, use_layer_norm)
+    return Seq2Seq(encoder, decoder, padding_id = padding_id)
