@@ -1,6 +1,7 @@
+import pandas as pd
 import torch
-from torch.utils.data import Dataset, DataLoader
-from src.seq2seq.utils import load_config
+from torch.utils.data import Dataset, DataLoader, random_split, ConcatDataset
+from utils import load_config
 from datasets import load_dataset
 
 
@@ -87,12 +88,11 @@ class CustomDataLoader:
         
         return src_ids, tgt_input, tgt_label # (bs, seq_len(logest)) / (bs, seq_len(logest)) / (bs, seq_len(logest))
     
-    def _collate_fn_with_text(self, batch): # valid/test용(BLEU 평가에 쓸 원본 텍스트도 함께 반환)
+    def collate_fn_with_text(self, batch):
         src_ids, tgt_input, tgt_label = self._collate_fn(batch)
         src_text = [src for src, _ in batch]
         tgt_text = [tgt for _, tgt in batch]
         return src_ids, tgt_input, tgt_label, src_text, tgt_text
-    
     
     def get_data_loader(self):
         train_dataloader = DataLoader(
@@ -111,7 +111,7 @@ class CustomDataLoader:
             batch_size = self.batch_size,
             shuffle = False,
             num_workers = 1,
-            collate_fn = self._collate_fn_with_text,
+            collate_fn = self._collate_fn,
             drop_last = True,
             pin_memory = torch.cuda.is_available(),
             generator = self.shuffle_generator,
