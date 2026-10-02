@@ -2,6 +2,7 @@ import sys
 import json
 import sacrebleu
 import torch
+import functools
 from sacrebleu.metrics import CHRF
 
 COMET_MODEL_NAME = "Unbabel/wmt22-comet-da"
@@ -10,9 +11,16 @@ def compute_bleu(hypotheses, references):
     # valid(train)/test(inference) 공통 BLEU 기준: 정답은 원문 텍스트, 대소문자 무시 (en_tokenizer가 uncased이므로)
     return sacrebleu.corpus_bleu(hypotheses, [references], lowercase = True).score
 
+
 def compute_chrf(hypotheses, references):
     # BLEU와 동일하게 대소문자 무시 (en_tokenizer가 uncased이므로)
     return CHRF(lowercase = True).corpus_score(hypotheses, [references]).score
+
+
+@functools.lru_cache(maxsize = 1) # 같은 프로세스에서는 한 번만 로드하도록
+def _load_comet_model():
+    from comet import download_model, load_from_checkpoint
+    return load_from_checkpoint(download_model(COMET_MODEL_NAME))
 
 def compute_comet(sources, hypotheses, references, batch_size = 32):
     # 대소문자를 그대로 둠: 의미 기반 지표이고, 대문자를 못 쓰는 것도 실제 번역 품질의 일부이므로
@@ -22,6 +30,7 @@ def compute_comet(sources, hypotheses, references, batch_size = 32):
     data = [{"src": s, "mt": h, "ref": r} for s, h, r in zip(sources, hypotheses, references)]
     output = model.predict(data, batch_size = batch_size, gpus = 1 if torch.cuda.is_available() else 0)
     return output.system_score # 0~1 사이 (문장별 점수는 output.scores)
+
 
 def evaluate(records, use_comet = False) -> dict: # 모델 종류와 무관하게 records(jsonl)만 보고 평가
     sources = [r["source"] for r in records]
@@ -35,6 +44,7 @@ def evaluate(records, use_comet = False) -> dict: # 모델 종류와 무관하�
     if use_comet:
         metrics["comet"] = compute_comet(sources, hypotheses, references)
     return metrics
+
 
 def load_predictions(path):
     with open(path, encoding = "utf-8") as f:
