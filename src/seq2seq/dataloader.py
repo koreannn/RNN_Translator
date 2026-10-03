@@ -1,8 +1,7 @@
 import pandas as pd
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split, ConcatDataset
-from src.seq2seq.utils import load_config
-from datasets import load_dataset
+from src.common.splits import load_splits
 
 
 class TranslationDataset(Dataset):
@@ -20,28 +19,14 @@ class TranslationDataset(Dataset):
 class CustomDataLoader:
     def __init__(self, 
                 kor_tokenizer, en_tokenizer,
-                max_length, batch_size,
+                max_length, batch_size, config,
             ):
-        self.config = load_config("config/config.yaml")
-        data_config = self.config["data"]
-        
-        dataset = load_dataset(data_config["dataset2"])["train"]
-        
-        # 테스트셋 설정
-        dataset_split = dataset.train_test_split(
-            test_size = data_config["dataset2_test_ratio"], seed = self.config["seed"]
-        )
-        dataset_train_valid, dataset_test = dataset_split["train"], dataset_split["test"]
+        self.config = config
+        splits = load_splits(config["data"], config["seed"]) # LLM 추론과 같은 split을 쓰도록 공통 함수 사용
 
-        # 검증셋 설정
-        dataset_split = dataset_train_valid.train_test_split(
-            test_size = data_config["dataset2_valid_ratio"], seed = self.config["seed"]
-        )
-        dataset_train, dataset_valid = dataset_split["train"], dataset_split["test"]
-        
-        self.train_data = TranslationDataset(dataset_train)
-        self.valid_data = TranslationDataset(dataset_valid)
-        self.test_data = TranslationDataset(dataset_test)
+        self.train_data = TranslationDataset(splits["train"])
+        self.valid_data = TranslationDataset(splits["valid"])
+        self.test_data = TranslationDataset(splits["test"])
         
         
         self.kor_tokenizer = kor_tokenizer

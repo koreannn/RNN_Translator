@@ -278,7 +278,7 @@ if __name__ == "__main__":
     log_path = f"logs/{wandb_exp_name}-{time.strftime('%Y%m%d-%H%M%S')}.log"
     logger.add(log_path, encoding = "utf-8")
 
-    data_loader = CustomDataLoader(kor_tokenizer, en_tokenizer, max_length = cfg.max_length, batch_size = cfg.batch_size)
+    data_loader = CustomDataLoader(kor_tokenizer, en_tokenizer, max_length = cfg.max_length, batch_size = cfg.batch_size, config = config)
     train_dataloader, valid_dataloader, _ = data_loader.get_data_loader()
 
     logger.info(f"device: {device}")

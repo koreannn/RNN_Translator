@@ -212,7 +212,7 @@ if __name__ == "__main__":
     param_stats = count_parameters(model)
     logger.info(f"# of model param: {param_stats['num_params']:,}")
     
-    dataloader = CustomDataLoader(kor_tokenizer, en_tokenizer, max_length = max_length, batch_size = batch_size)
+    dataloader = CustomDataLoader(kor_tokenizer, en_tokenizer, max_length = max_length, batch_size = batch_size, config = config)
     _, _, test_dataloader = dataloader.get_data_loader() # test의 데이터로더는 1개씩 들어가도록 고정되어있음
     
     strategy = config["inference"]["decoding_strategy"]
