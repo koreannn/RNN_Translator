@@ -46,6 +46,7 @@ inference:
   batch_size: 4
   checkpoint_path: "checkpoints/best.pt"
   decoding_strategy: greedy # greedy / beam / hybrid
+  source_run_id: "" # 직접 지정해서 돌릴 경우에만 사용
   sample_size: 1000 # null일 경우 test셋 전체
   beam:
     beam_size: 4

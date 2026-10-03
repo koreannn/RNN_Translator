@@ -99,6 +99,7 @@ def train(
             "seq2seq_state_dict": seq2seq_model.state_dict(),
             "optimizer_state_dict": optimizer.state_dict(),
             "model_config": model_config, # 추론 시 build_model(**model_config)로 그대로 복원
+            "mlflow_run_id": mlflow.active_run().info.run_id, # 추론(평가) run을 이 학습 run의 자식으로 붙이기 위함
         }
         torch.save(payload, checkpoint_dir / "last.pt")
 

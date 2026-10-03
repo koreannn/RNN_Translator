@@ -3,6 +3,7 @@ import random
 import json
 import torch
 import wandb
+import mlflow
 
 from loguru import logger
 from pathlib import Path
@@ -194,12 +195,19 @@ if __name__ == "__main__":
     kor_tokenizer = AutoTokenizer.from_pretrained(kor_tokenizer_name)
     en_tokenizer = AutoTokenizer.from_pretrained(en_tokenizer_name)
 
-    model = load_checkpoint(model_checkpoint_path, device = device)
-    
-    # logger.info(f"Loaded checkpoint from {model_checkpoint_path} (epoch = {model.get("epoch")} & validation loss = {model.get("valid_loss")})")
+    checkpoint = load_checkpoint(model_checkpoint_path, device = device)
     logger.info(f"Loaded checkpoint from {model_checkpoint_path}")
-    
-    model = get_model_from_checkpoint(model, device = device)
+
+    # 평가 run을 붙일 부모(학습) run: config 값 우선, 없으면 체크포인트에 저장된 학습 run ID
+    config_run_id = config["inference"].get("source_run_id")
+    ckpt_run_id = checkpoint.get("mlflow_run_id")
+    if config_run_id and ckpt_run_id and config_run_id != ckpt_run_id:
+        logger.warning(f"config의 source_run_id({config_run_id})와 체크포인트의 run ID({ckpt_run_id})가 다릅니다. config 값을 사용합니다.")
+    source_run_id = config_run_id or ckpt_run_id
+    if source_run_id is None:
+        logger.warning("학습 run ID를 찾지 못해 평가 결과를 독립 run으로 기록합니다.")
+
+    model = get_model_from_checkpoint(checkpoint, device = device)
     param_stats = count_parameters(model)
     logger.info(f"# of model param: {param_stats['num_params']:,}")
     
@@ -227,26 +235,53 @@ if __name__ == "__main__":
     )
     elapsed = time.time() - start_time # 디코딩 시간만 측정 (저장·평가 제외)
     peak_vram_mb = get_peak_vram_mb(device)
-    
+    if peak_vram_mb is not None:
+        logger.info(f"Peak VRAM: {peak_vram_mb:.1f} MB")
+
     # 문장 추론 latency
     latency_stats = summarize_latency([r["latency_ms"] for r in records])
     throughput = len(records) / elapsed # 초당 문장 처리 수
     logger.info(f"Latency p50 = {latency_stats['latency_p50_ms']:.1f} ms, p95 = {latency_stats['latency_p95_ms']:.1f} ms, throughput = {throughput:.2f} 문장/초")
 
-    save_predictions(records, f"outputs/predictions/{Path(model_checkpoint_path).stem}-{strategy}.jsonl")
+    predictions_path = f"outputs/predictions/{Path(model_checkpoint_path).stem}-{strategy}.jsonl"
+    save_predictions(records, predictions_path)
     metrics = evaluate(records, use_comet = use_comet)
     logger.info(f"Test 평가 결과({strategy}): " + ", ".join(f"{k} = {v:.4f}" for k, v in metrics.items()))
 
-    wandb.log(
-        {
-            "inference_time_sec": elapsed,
-            **{f"test_{k}": v for k, v in metrics.items()},
-            **param_stats,
-            **({"peak_vram_mb": peak_vram_mb} if peak_vram_mb is not None else {}), # cuda에서만 기록
-            **latency_stats, # latency_p50_ms, latency_p95_ms, latency_mean_ms
-            "throughput_sent_per_sec": throughput,
-        }
-    )
+    # wandb·MLflow 공통 metric (이름은 이후 LLM 평가 run과 동일하게 사용)
+    eval_metrics = {
+        "inference_time_sec": elapsed,
+        **{f"test_{k}": v for k, v in metrics.items()}, # test_bleu, test_chrf, (test_comet)
+        **param_stats, # num_params, num_trainable_params
+        **({"peak_vram_mb": peak_vram_mb} if peak_vram_mb is not None else {}), # cuda에서만 기록
+        **latency_stats, # latency_p50_ms, latency_p95_ms, latency_mean_ms
+        "throughput_sent_per_sec": throughput,
+    }
+
+    wandb.log(eval_metrics)
     wandb.finish()
+
+    # MLflow: 학습 run(부모) 아래에 평가 run(자식)으로 기록 → 모델별 평가 결과가 학습 run 하위에 쌓임
+    mlflow.set_tracking_uri(config["mlflow"]["tracking_uri"])
+    mlflow.set_experiment(config["mlflow"]["experiment_name"]) # 부모(학습 run)와 같은 experiment여야 함
+    with mlflow.start_run(
+        run_name = f"eval-{strategy}",
+        parent_run_id = source_run_id, # None이면 독립 run
+        tags = {
+            "run_type": "eval",
+            "model_family": "rnn", # rnn / llm
+            "method": "scratch", # scratch / zero-shot / lora
+            "decoding": strategy,
+        },
+    ):
+        mlflow.log_params({
+            "checkpoint_path": model_checkpoint_path,
+            "batch_size": batch_size,
+            "sample_size": sample_size,
+            "use_comet": use_comet,
+            **{f"decode.{k}": v for k, v in decode_kwargs.items()},
+        })
+        mlflow.log_metrics(eval_metrics)
+        mlflow.log_artifact(predictions_path, artifact_path = "predictions")
     logger.info(f"Total Inference Time: {elapsed:.2f}초")
     
