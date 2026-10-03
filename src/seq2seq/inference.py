@@ -11,7 +11,7 @@ from src.seq2seq.model import build_model
 from src.seq2seq.utils import load_config, resolve_device, set_seed
 from src.seq2seq.decoding import get_special_token_ids, greedy_decoding, beam_decoding, sampling_decoding
 from src.evaluation.metrics import evaluate
-from src.evaluation.efficiency import count_parameters, reset_peak_vram, get_peak_vram_mb
+from src.evaluation.efficiency import count_parameters, reset_peak_vram, get_peak_vram_mb, measure_ms, summarize_latency
 from src.seq2seq.dataloader import CustomDataLoader
 
 def load_checkpoint(path, device):
@@ -100,33 +100,43 @@ def generate_predictions( # test 로더를 돌며 번역 결과를 records로 �
         src_ids = src_ids.to(device)
 
         if strategy == "greedy": # 배치 단위
-            gen_ids = greedy_decoding(model, src_ids, max_new_tokens = max_new_tokens, **ids)
+            gen_ids, batch_ms = measure_ms(
+                lambda: greedy_decoding(model, src_ids, max_new_tokens = max_new_tokens, **ids),
+                device
+            )
             hypotheses = [s.strip() for s in en_tokenizer.batch_decode(gen_ids, skip_special_tokens = True)]
+            latencies = [batch_ms] * len(hypotheses)
         else: # beam / hybrid는 문장 단위
             decode_fn = beam_decoding if strategy == "beam" else sampling_decoding
-            hypotheses = []
+            hypotheses, latencies = [], []
             for i in range(src_ids.size(0)):
                 if sample_size is not None and len(records) + len(hypotheses) >= sample_size:
                     break
-                gen_ids = decode_fn(
-                    model,
-                    src_ids[i : i + 1],
-                    max_new_tokens = max_new_tokens,
-                    max_length = max_length,
-                    **ids,
-                    **decode_kwargs,
+                gen_ids, ms = measure_ms(
+                    lambda: decode_fn(
+                        model,
+                        src_ids[i : i + 1],
+                        max_new_tokens = max_new_tokens,
+                        max_length = max_length,
+                        **ids,
+                        **decode_kwargs,
+                    ),
+                    device,
                 )
+                
                 hypotheses.append(en_tokenizer.decode(gen_ids, skip_special_tokens = True).strip())
+                latencies.append(ms)
 
         if sample_size is not None: # greedy는 배치 단위라 sample_size를 넘칠 수 있으므로 잘라냄
             hypotheses = hypotheses[: sample_size - len(records)]
 
-        for source, reference, hypothesis in zip(src_text, tgt_text, hypotheses):
+        for source, reference, hypothesis, latency_ms in zip(src_text, tgt_text, hypotheses, latencies):
             records.append({
                 "id": len(records), # test split 내 순번 (test 로더는 shuffle = False)
                 "source": source,
                 "reference": reference,
                 "hypothesis": hypothesis,
+                "latency_ms": round(latency_ms, 3),
             })
 
         if hypotheses:
@@ -217,19 +227,26 @@ if __name__ == "__main__":
     )
     elapsed = time.time() - start_time # 디코딩 시간만 측정 (저장·평가 제외)
     peak_vram_mb = get_peak_vram_mb(device)
+    
+    # 문장 추론 latency
+    latency_stats = summarize_latency([r["latency_ms"] for r in records])
+    throughput = len(records) / elapsed # 초당 문장 처리 수
+    logger.info(f"Latency p50 = {latency_stats['latency_p50_ms']:.1f} ms, p95 = {latency_stats['latency_p95_ms']:.1f} ms, throughput = {throughput:.2f} 문장/초")
 
     save_predictions(records, f"outputs/predictions/{Path(model_checkpoint_path).stem}-{strategy}.jsonl")
     metrics = evaluate(records, use_comet = use_comet)
     logger.info(f"Test 평가 결과({strategy}): " + ", ".join(f"{k} = {v:.4f}" for k, v in metrics.items()))
 
     wandb.log(
-    {
-        "inference_time_sec": elapsed,
-        **{f"test_{k}": v for k, v in metrics.items()},
-        **param_stats,
-        **({"peak_vram_mb": peak_vram_mb} if peak_vram_mb is not None else {}), # cuda에서만 기록
-    }
-)
+        {
+            "inference_time_sec": elapsed,
+            **{f"test_{k}": v for k, v in metrics.items()},
+            **param_stats,
+            **({"peak_vram_mb": peak_vram_mb} if peak_vram_mb is not None else {}), # cuda에서만 기록
+            **latency_stats, # latency_p50_ms, latency_p95_ms, latency_mean_ms
+            "throughput_sent_per_sec": throughput,
+        }
+    )
     wandb.finish()
     logger.info(f"Total Inference Time: {elapsed:.2f}초")
     
