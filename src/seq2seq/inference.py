@@ -11,7 +11,7 @@ from src.seq2seq.model import build_model
 from src.seq2seq.utils import load_config, resolve_device, set_seed
 from src.seq2seq.decoding import get_special_token_ids, greedy_decoding, beam_decoding, sampling_decoding
 from src.evaluation.metrics import evaluate
-from src.evaluation.efficiency import count_parameters
+from src.evaluation.efficiency import count_parameters, reset_peak_vram, get_peak_vram_mb
 from src.seq2seq.dataloader import CustomDataLoader
 
 def load_checkpoint(path, device):
@@ -201,8 +201,7 @@ if __name__ == "__main__":
     sample_size = config["inference"]["sample_size"]
     use_comet = config["inference"].get("evaluation", {}).get("use_comet", False) # COMET은 GPU 권장 (CPU에선 매우 느림)
     
-    torch.cuda.reset_peak_memory_stats()
-
+    reset_peak_vram(device)
     start_time = time.time()
     records = generate_predictions(
         model,
@@ -217,19 +216,20 @@ if __name__ == "__main__":
         sample_size = sample_size,
     )
     elapsed = time.time() - start_time # 디코딩 시간만 측정 (저장·평가 제외)
-    torch.cuda.max_memory_allocated()
+    peak_vram_mb = get_peak_vram_mb(device)
 
     save_predictions(records, f"outputs/predictions/{Path(model_checkpoint_path).stem}-{strategy}.jsonl")
     metrics = evaluate(records, use_comet = use_comet)
     logger.info(f"Test 평가 결과({strategy}): " + ", ".join(f"{k} = {v:.4f}" for k, v in metrics.items()))
 
     wandb.log(
-        {
-            "inference_time_sec": elapsed,
-            **{f"test_{k}": v for k, v in metrics.items()}, # test_bleu, test_chrf, (test_comet) — LLM run과 같은 이름 사용
-            **param_stats, # num_params, num_trainable_params
-        }
-    )
+    {
+        "inference_time_sec": elapsed,
+        **{f"test_{k}": v for k, v in metrics.items()},
+        **param_stats,
+        **({"peak_vram_mb": peak_vram_mb} if peak_vram_mb is not None else {}), # cuda에서만 기록
+    }
+)
     wandb.finish()
     logger.info(f"Total Inference Time: {elapsed:.2f}초")
     
