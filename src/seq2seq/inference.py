@@ -16,7 +16,7 @@ from src.evaluation.efficiency import count_parameters, reset_peak_vram, get_pea
 from src.seq2seq.dataloader import CustomDataLoader
 
 def load_checkpoint(path, device):
-    checkpoint = torch.load(path, map_location = device)
+    checkpoint = torch.load(path, map_location = "cpu")
     get_model_config(checkpoint) # 모델 복원에 필요한 키가 모두 있는지 미리 검증
 
     if "seq2seq_state_dict" not in checkpoint:
@@ -208,6 +208,7 @@ if __name__ == "__main__":
         logger.warning("학습 run ID를 찾지 못해 평가 결과를 독립 run으로 기록합니다.")
 
     model = get_model_from_checkpoint(checkpoint, device = device)
+    del checkpoint # CPU 메모리 해제용(GPU에는 변화 없음)
     param_stats = count_parameters(model)
     logger.info(f"# of model param: {param_stats['num_params']:,}")
     
