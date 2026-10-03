@@ -7,21 +7,26 @@ requires-python = ">=3.11, <3.14"
 dependencies = [
     # 딥러닝 코어
     "torch>=2.5.1",
+    
     # HuggingFace 관련
     "transformers>=4.57.0",
     "datasets>=4.8.2",
+    
     # 학습 모니터링
     "wandb>=0.25.0",
+    
     # 평가 지표
     "sacrebleu>=2.6.0",
+
     # 유틸
     "pyyaml>=6.0.3",
     "loguru>=0.7.3",
     "pandas>=2.3.3",
-    # 데모 앱
+
     "streamlit>=1.52.2",
     "matplotlib>=3.11.0",
     "triton>=3.2.0; sys_platform=='linux'",
+    "vllm==0.8.5.post1; sys_platform == 'linux'", # torch 2.6.0과 호환되는 마지막 버전 (Qwen3 지원)
     "setuptools>=70,<81", # unbabel-comet → torchmetrics 0.10이 pkg_resources(81에서 제거)를 사용
     "mlflow>=3.16.1",
     "unbabel-comet>=2.2.7",

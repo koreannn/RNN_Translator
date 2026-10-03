@@ -21,6 +21,10 @@ data:
   dataset2_valid_ratio: 0.2
   dataset2_test_ratio: 0.2
 
+model:
+  kor_tokenizer: "klue/bert-base"
+  en_tokenizer: "google-bert/bert-base-uncased"
+
 train:
   h_param:
     embedding_lr: 1.0e-5
@@ -58,7 +62,23 @@ inference:
   evaluation:
     use_comet: true
 
-model:
-  kor_tokenizer: "klue/bert-base"
-  en_tokenizer: "google-bert/bert-base-uncased"
+llm:
+  model_name: "Qwen/Qwen3-0.6B"
+  sample_size: 1000
+  prompt:
+    version: "v1" # MLflow에 기록될 짧은 이름
+    system: "You are a professional translator. Translate Korean text into natural, accurate English."
+    user: |
+      Translate the following Korean text into English.
+      Output only the English translation, without any explanation, notes, or quotation marks.
+
+      {source}
+  generation:
+    temperature: 0.0
+    max_tokens: 512
+    enable_thinking: false
+  vllm:
+    dtype: "bfloat16"
+    max_model_len: 2048 # 프롬프트 + 번역문 최대 길이
+    gpu_memory_utilization: 0.85 # vLLM이 미리 잡아둘 GPU 메모리 비율
 
