@@ -75,10 +75,10 @@ llm:
       {source}
   generation:
     temperature: 0.0
-    max_tokens: 512
+    max_tokens: 1024
     enable_thinking: false
   vllm:
     dtype: "bfloat16"
-    max_model_len: 2048 # 프롬프트 + 번역문 최대 길이
+    max_model_len: 4096 # 프롬프트 + 번역문 최대 길이
     gpu_memory_utilization: 0.85 # vLLM이 미리 잡아둘 GPU 메모리 비율
 
