@@ -11,7 +11,7 @@ from transformers import AutoTokenizer
 from src.seq2seq.model import build_model
 from src.seq2seq.utils import load_config, resolve_device, set_seed
 from src.seq2seq.decoding import get_special_token_ids, greedy_decoding, beam_decoding, sampling_decoding
-from src.evaluation.metrics import evaluate
+from src.evaluation.metrics import evaluate, save_predictions
 from src.evaluation.efficiency import count_parameters, reset_peak_vram, get_peak_vram_mb, measure_ms, summarize_latency
 from src.seq2seq.dataloader import CustomDataLoader
 
@@ -149,17 +149,6 @@ def generate_predictions( # test 로더를 돌며 번역 결과를 records로 �
             break
 
     return records
-
-
-def save_predictions(records, path):
-    path = Path(path)
-    path.parent.mkdir(parents = True, exist_ok = True)
-    
-    with open(path, "w", encoding = "utf-8") as f:
-        for record in records:
-            f.write(json.dumps(record, ensure_ascii = False) + "\n")
-    
-    logger.info(f"예측 결과 저장: {path} ({len(records)} 문장)")
 
 
 if __name__ == "__main__":

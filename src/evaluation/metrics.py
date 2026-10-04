@@ -3,7 +3,10 @@ import json
 import sacrebleu
 import torch
 import functools
+
 from sacrebleu.metrics import CHRF
+from loguru import logger
+from pathlib import Path
 
 COMET_MODEL_NAME = "Unbabel/wmt22-comet-da"
 
@@ -48,6 +51,17 @@ def evaluate(records, use_comet = False) -> dict: # 모델 종류와 무관하�
 def load_predictions(path):
     with open(path, encoding = "utf-8") as f:
         return [json.loads(line) for line in f if line.strip()]
+    
+
+def save_predictions(records, path):
+    path = Path(path)
+    path.parent.mkdir(parents = True, exist_ok = True)
+    
+    with open(path, "w", encoding = "utf-8") as f:
+        for record in records:
+            f.write(json.dumps(record, ensure_ascii = False) + "\n")
+    
+    logger.info(f"예측 결과 저장: {path} ({len(records)} 문장)")
 
 
 if __name__ == "__main__":

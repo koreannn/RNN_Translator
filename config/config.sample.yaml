@@ -1,9 +1,11 @@
 seed: 123
 
+
 wandb:
   wandb_entity: "koreannn-gangneung-national-university"
   wandb_project: "pytorch-rnn-translator"
   wandb_architecture: "Vanila-RNN-Seq2Seq"
+
 
 mlflow:
   tracking_uri: "sqlite:///mlflow.db"
@@ -14,6 +16,7 @@ mlflow:
   tags:
     purpose: "baseline" # baseline / ablation / tuning / debug
 
+
 data:
   dataset1: "Helsinki-NLP/opus-100" # 구어체 위주, 짧은 길이 위주
   dataset1_config: "en-ko"
@@ -21,9 +24,11 @@ data:
   dataset2_valid_ratio: 0.2
   dataset2_test_ratio: 0.2
 
+
 model:
   kor_tokenizer: "klue/bert-base"
   en_tokenizer: "google-bert/bert-base-uncased"
+
 
 train:
   h_param:
@@ -44,6 +49,7 @@ train:
       min_delta: 0.005
   model_architecture: "Seq2Seq-with-GRU"
 
+
 inference:
   max_length: 400
   max_new_token: 400
@@ -52,15 +58,19 @@ inference:
   decoding_strategy: greedy # greedy / beam / hybrid
   source_run_id: "" # 직접 지정해서 돌릴 경우에만 사용
   sample_size: 1000 # null일 경우 test셋 전체
+
   beam:
     beam_size: 4
     alpha: 0.6
+
   hybrid:
     temperature: 0.8
     top_k: 50
     top_p: 0.9
+
   evaluation:
     use_comet: true
+
 
 llm:
   model_name: "Qwen/Qwen3-0.6B"
@@ -73,10 +83,15 @@ llm:
       Output only the English translation, without any explanation, notes, or quotation marks.
 
       {source}
+  mlflow_experiment: "llm-translator"
+  evaluation:
+    use_comet: true
+
   generation:
     temperature: 0.0
     max_tokens: 1024
     enable_thinking: false
+
   vllm:
     dtype: "bfloat16"
     max_model_len: 4096 # 프롬프트 + 번역문 최대 길이
