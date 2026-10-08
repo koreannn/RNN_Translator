@@ -1,15 +1,25 @@
+import math
 import torch
 import time
 import numpy as np
 
 from huggingface_hub import get_safetensors_metadata
+from transformers import AutoConfig
 
 
 DTYPE_BYTES = {"bfloat16": 2, "float16": 2, "float32": 4}
 
 
 def hf_model_stats(model_name, dtype): # vLLM처럼 모델 객체에 접근하기 어려울 때: 가중치 파일 헤더로 계산
-    num_params = sum(get_safetensors_metadata(model_name).parameter_count.values())
+    metadata = get_safetensors_metadata(model_name)
+    num_params = sum(metadata.parameter_count.values())
+
+    # 입력 임베딩과 출력층이 가중치를 공유하는데(tie_word_embeddings) 파일에는 lm_head가 복사본으로 저장된 경우
+    # (예: Qwen3-0.6B·1.7B) 실제 로드 시에는 하나로 합쳐지므로 중복분을 뺌
+    tensors = {name: info for file in metadata.files_metadata.values() for name, info in file.tensors.items()}
+    if AutoConfig.from_pretrained(model_name).tie_word_embeddings and "lm_head.weight" in tensors:
+        num_params -= math.prod(tensors["lm_head.weight"].shape)
+
     return {
         "num_params": num_params,
         "weight_vram_mb": num_params * DTYPE_BYTES[dtype] / 1024 ** 2, # 로드된 가중치가 차지하는 GPU 메모리

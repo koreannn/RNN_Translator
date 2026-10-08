@@ -126,10 +126,13 @@ if __name__ == "__main__":
             "max_tokens": llm_cfg["generation"]["max_tokens"],
             "max_model_len": llm_cfg["vllm"]["max_model_len"],
             "vllm_version": vllm_version,
+            "latency_sample_size": llm_cfg["latency_sample_size"], # latency를 한 건씩 측정한 문장 수
+            "enable_prefix_caching": llm_cfg["vllm"]["enable_prefix_caching"],
         })
         mlflow.log_metrics({
             **{f"test_{k}": v for k, v in metrics.items()}, # RNN 평가 run과 같은 이름
             "truncated_rate": truncated_rate,
+            **efficiency, # latency_p50/p95/mean_ms, throughput_sent_per_sec, output_tokens_per_sec, num_params, weight_vram_mb, num_trainable_params
         })
         mlflow.log_text(llm_cfg["prompt"]["system"] + "\n\n" + llm_cfg["prompt"]["user"], "prompt.txt") # 프롬프트 전문
         mlflow.log_artifact(predictions_path, artifact_path = "predictions")
