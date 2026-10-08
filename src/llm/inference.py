@@ -11,6 +11,7 @@ from src.common.splits import load_splits, get_test_examples
 from src.llm.prompt import build_prompt
 from src.llm.postprocess import clean_translation
 from src.evaluation.metrics import evaluate, save_predictions
+from src.evaluation.efficiency import summarize_latency, hf_model_stats
 
 
 def generate_predictions(llm, tokenizer, examples, llm_cfg): # test 예시 → records (RNN과 같은 형식 + LLM 전용 필드)
@@ -19,7 +20,10 @@ def generate_predictions(llm, tokenizer, examples, llm_cfg): # test 예시 → r
         temperature = llm_cfg["generation"]["temperature"],
         max_tokens = llm_cfg["generation"]["max_tokens"],
     )
+    
+    start = time.perf_counter()
     outputs = llm.generate(prompts, params) # 입력 순서대로 결과가 돌아옴
+    batch_elapsed = time.perf_counter() - start # throughput 계산용
 
     records = []
     for example, out in zip(examples, outputs):
@@ -33,7 +37,21 @@ def generate_predictions(llm, tokenizer, examples, llm_cfg): # test 예시 → r
             "num_output_tokens": len(completion.token_ids),
             "finish_reason": completion.finish_reason, # "length"면 max_tokens에서 잘림 (반복 루프 등)
         })
-    return records
+    return records, batch_elapsed
+
+
+def measure_latency(llm, tokenizer, examples, llm_cfg): # 한 건씩 생성 → 요청 하나의 응답 시간(ms)
+    params = SamplingParams(
+        temperature = llm_cfg["generation"]["temperature"],
+        max_tokens = llm_cfg["generation"]["max_tokens"],
+    )
+    latencies = {}
+    for example in examples:
+        prompt = build_prompt(example["source"], tokenizer, llm_cfg)
+        start = time.perf_counter()
+        llm.generate([prompt], params, use_tqdm = False) # 결과는 버리고 시간만 사용 (품질 평가는 일괄 생성 결과로)
+        latencies[example["id"]] = (time.perf_counter() - start) * 1000
+    return latencies
 
 
 if __name__ == "__main__":
@@ -51,9 +69,17 @@ if __name__ == "__main__":
         max_model_len = llm_cfg["vllm"]["max_model_len"],
         gpu_memory_utilization = llm_cfg["vllm"]["gpu_memory_utilization"],
         seed = config["seed"],
+        enable_prefix_caching = llm_cfg["vllm"]["enable_prefix_caching"],
     )
 
-    records = generate_predictions(llm, tokenizer, examples, llm_cfg)
+    records, batch_elapsed = generate_predictions(llm, tokenizer, examples, llm_cfg)
+    
+    # latency: 앞쪽 일부를 한 건씩 (RNN도 같은 id로 다시 집계해서 비교)
+    latency_examples = examples[: llm_cfg["latency_sample_size"]]
+    latencies = measure_latency(llm, tokenizer, latency_examples, llm_cfg)
+    for r in records:
+        r["latency_ms"] = round(latencies[r["id"]], 3) if r["id"] in latencies else None # 측정 안 한 문장은 None
+        
     predictions_path = f"outputs/predictions/{run_tag}.jsonl"
     save_predictions(records, predictions_path)
 
@@ -65,6 +91,19 @@ if __name__ == "__main__":
 
     use_comet = llm_cfg.get("evaluation", {}).get("use_comet", False)
     metrics = evaluate(records, use_comet = use_comet)
+    
+    # 효율 지표 계산 및 기록
+    latency_stats = summarize_latency([r["latency_ms"] for r in records if r["latency_ms"] is not None])
+    total_output_tokens = sum(r["num_output_tokens"] for r in records)
+    efficiency = {
+        **latency_stats, # latency_p50_ms, latency_p95_ms, latency_mean_ms (RNN과 같은 이름)
+        "throughput_sent_per_sec": len(records) / batch_elapsed, # RNN과 같은 이름
+        "output_tokens_per_sec": total_output_tokens / batch_elapsed, # LLM 전용: 출력 길이 차이를 감안한 속도
+        **hf_model_stats(model_name, llm_cfg["vllm"]["dtype"]), # num_params, weight_vram_mb
+        "num_trainable_params": 0, # zero-shot은 이 과제를 위해 학습한 파라미터 없음
+    }
+    logger.info("효율: " + ", ".join(f"{k} = {v:,.2f}" for k, v in efficiency.items()))
+    
     truncated_rate = sum(r["finish_reason"] == "length" for r in records) / len(records)
     logger.info(f"Test 평가 결과({run_tag}): " + ", ".join(f"{k} = {v:.4f}" for k, v in metrics.items()) + f", 잘린 비율 = {truncated_rate:.1%}")
 

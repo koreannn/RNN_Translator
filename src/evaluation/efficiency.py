@@ -2,6 +2,19 @@ import torch
 import time
 import numpy as np
 
+from huggingface_hub import get_safetensors_metadata
+
+
+DTYPE_BYTES = {"bfloat16": 2, "float16": 2, "float32": 4}
+
+
+def hf_model_stats(model_name, dtype): # vLLM처럼 모델 객체에 접근하기 어려울 때: 가중치 파일 헤더로 계산
+    num_params = sum(get_safetensors_metadata(model_name).parameter_count.values())
+    return {
+        "num_params": num_params,
+        "weight_vram_mb": num_params * DTYPE_BYTES[dtype] / 1024 ** 2, # 로드된 가중치가 차지하는 GPU 메모리
+    }
+
 
 def _synchronize(device): # GPU 연산은 비동기라, 끝날 때까지 기다린 뒤 시간을 재야 정확함
     if device == "cuda":

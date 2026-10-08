@@ -75,6 +75,7 @@ inference:
 llm:
   model_name: "Qwen/Qwen3-0.6B"
   sample_size: 1000
+  latency_sample_size: 200
   prompt:
     version: "v1" # MLflow에 기록될 짧은 이름
     system: "You are a professional translator. Translate Korean text into natural, accurate English."
@@ -87,13 +88,16 @@ llm:
   evaluation:
     use_comet: true
 
+vllm:
+    dtype: "bfloat16"
+    max_model_len: 4096 # 프롬프트 + 번역문 최대 길이
+    gpu_memory_utilization: 0.85 # vLLM이 미리 잡아둘 GPU 메모리 비율
+    enable_prefix_caching: false # KV 캐싱 ON/OFF용 (캐시 재사용으로 인해 latency 측정이 왜곡되지 않도록)
+
   generation:
     temperature: 0.0
     max_tokens: 1024
     enable_thinking: false
 
-  vllm:
-    dtype: "bfloat16"
-    max_model_len: 4096 # 프롬프트 + 번역문 최대 길이
-    gpu_memory_utilization: 0.85 # vLLM이 미리 잡아둘 GPU 메모리 비율
+  
 
