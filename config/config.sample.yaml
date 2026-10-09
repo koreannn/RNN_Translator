@@ -8,7 +8,7 @@ wandb:
 
 
 mlflow:
-  tracking_uri: "sqlite:///mlflow.db"
+  tracking_uri: "http://127.0.0.1:5002"
   experiment_name: "rnn-translator"
   log_model_weights: true # false일 경우 모델 파일이 MLflow에 올라가지 않음
   run_name: "baseline" # 이번 실험을 짧게 (비우면 MLflow가 랜덤 이름 붙임)
