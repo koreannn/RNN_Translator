@@ -7,22 +7,17 @@ requires-python = ">=3.11, <3.14"
 dependencies = [
     # 딥러닝 코어
     "torch>=2.5.1",
-    
     # HuggingFace 관련
     "transformers>=4.57.0",
     "datasets>=4.8.2",
-    
     # 학습 모니터링
     "wandb>=0.25.0",
-    
     # 평가 지표
     "sacrebleu>=2.6.0",
-
     # 유틸
     "pyyaml>=6.0.3",
     "loguru>=0.7.3",
     "pandas>=2.3.3",
-
     "streamlit>=1.52.2",
     "matplotlib>=3.11.0",
     "triton>=3.2.0; sys_platform=='linux'",
@@ -31,6 +26,8 @@ dependencies = [
     "mlflow>=3.16.1",
     "unbabel-comet>=2.2.7",
     "hf-transfer>=0.1.9",
+    "psycopg2-binary>=2.9.13",
+    "boto3>=1.43.110",
 ]
 
 [tool.uv]
