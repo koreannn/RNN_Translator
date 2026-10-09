@@ -26,8 +26,8 @@ dependencies = [
     "mlflow>=3.16.1",
     "unbabel-comet>=2.2.7",
     "hf-transfer>=0.1.9",
-    "psycopg2-binary>=2.9.13",
     "boto3>=1.43.110",
+    "psycopg[binary]>=3.3.6",
 ]
 
 [tool.uv]
