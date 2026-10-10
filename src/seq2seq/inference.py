@@ -211,7 +211,7 @@ if __name__ == "__main__":
     decode_kwargs = config["inference"].get(strategy, {}) # greedy는 하이퍼파라미터 섹션이 없으므로 {}
     sample_size = config["inference"]["sample_size"]
     use_comet = config["inference"].get("evaluation", {}).get("use_comet", False) # COMET은 GPU 권장 (CPU에선 매우 느림)
-    length_bins = get_length_bins(config) # 원문 길이 구간 경계 (LLM 평가와 공유)
+    length_bins = get_length_bins(config) # 원문 길이 구간 경계 (소형 Transformer·LLM 평가와 공유)
     
     reset_peak_vram(device)
     start_time = time.time()

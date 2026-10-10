@@ -50,7 +50,7 @@ train:
   model_architecture: "Seq2Seq-with-GRU"
 
 
-evaluation: # RNN·LLM 평가 공통
+evaluation: # RNN·소형 Transformer·LLM 평가 공통
   length_bins: [50, 200, 300, 400] # 원문 길이(공백 제외 글자 수) 구간 경계 → 0-50 / 51-200 / 201-300 / 301-400 / 401-inf
 
 
@@ -72,6 +72,21 @@ inference:
     top_k: 50
     top_p: 0.9
 
+  evaluation:
+    use_comet: true
+
+
+mini_transformer:
+  model_name: "Helsinki-NLP/opus-mt-ko-en" # MarianMT, 약 7,700만 파라미터 (RNN과 비슷한 크기)
+  sample_size: 1000 # null일 경우 test셋 전체
+  batch_size: 1
+  max_length: 512 # 입력 토큰 상한 (모델의 위치 임베딩 한계)
+  max_new_tokens: 400 # RNN inference.max_new_token과 동일 (문장 단위 번역이면 문장당 상한)
+  split_sentences: true # 문장 단위로 나눠 번역 후 이어 붙임 (문장 단위로 학습된 모델이라 문단을 통째로 넣으면 앞부분만 번역함)
+  decoding_strategy: greedy # greedy / beam
+  beam:
+    num_beams: 4 # RNN beam_size와 동일
+  mlflow_experiment: "mini-transformer-translator"
   evaluation:
     use_comet: true
 

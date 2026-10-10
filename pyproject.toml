@@ -30,6 +30,7 @@ dependencies = [
     "psycopg[binary]>=3.3.6",
     "trl>=1.15.0",
     "peft>=0.21.2",
+    "sentencepiece>=0.2.2",
 ]
 
 [tool.uv]

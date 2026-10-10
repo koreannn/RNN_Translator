@@ -91,7 +91,7 @@ if __name__ == "__main__":
 
     use_comet = llm_cfg.get("evaluation", {}).get("use_comet", False)
     metrics = evaluate(records, use_comet = use_comet) # use_comet이면 records에 문장별 COMET 점수도 추가됨
-    length_bins = get_length_bins(config) # 원문 길이 구간 경계 (RNN 평가와 공유)
+    length_bins = get_length_bins(config) # 원문 길이 구간 경계 (RNN·소형 Transformer 평가와 공유)
     length_breakdown = evaluate_by_length(records, length_bins)
     if use_comet:
         save_predictions(records, predictions_path) # 문장별 COMET 점수를 포함해 다시 저장
