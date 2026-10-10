@@ -50,6 +50,10 @@ train:
   model_architecture: "Seq2Seq-with-GRU"
 
 
+evaluation: # RNN·LLM 평가 공통
+  length_bins: [50, 200, 300, 400] # 원문 길이(공백 제외 글자 수) 구간 경계 → 0-50 / 51-200 / 201-300 / 301-400 / 401-inf
+
+
 inference:
   max_length: 400
   max_new_token: 400

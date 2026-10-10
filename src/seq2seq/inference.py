@@ -11,7 +11,7 @@ from transformers import AutoTokenizer
 from src.seq2seq.model import build_model
 from src.seq2seq.utils import load_config, resolve_device, set_seed
 from src.seq2seq.decoding import get_special_token_ids, greedy_decoding, beam_decoding, sampling_decoding
-from src.evaluation.metrics import evaluate, save_predictions
+from src.evaluation.metrics import evaluate, save_predictions, get_length_bins, evaluate_by_length, flatten_length_metrics, format_length_breakdown
 from src.evaluation.efficiency import count_parameters, reset_peak_vram, get_peak_vram_mb, measure_ms, summarize_latency
 from src.seq2seq.dataloader import CustomDataLoader
 
@@ -95,9 +95,11 @@ def generate_predictions( # test 로더를 돌며 번역 결과를 records로 �
 
     ids = get_special_token_ids(kor_tokenizer, en_tokenizer)
     decode_kwargs = decode_kwargs or {}
-    records = [] # [{"id", "source", "reference", "hypothesis"}, ...]
+    records = [] # [{"id", "source", "reference", "hypothesis", "latency_ms", "source_truncated"}, ...]
 
     for src_ids, _, _, src_text, tgt_text in test_dataloader:
+        # 패딩을 뺀 원문 토큰 수가 max_length에 닿았으면 토크나이저에서 잘린 입력 (길이별 평가에서 성능 하락 원인 구분용)
+        source_truncated = ((src_ids != ids["src_pad_id"]).sum(dim = 1) >= max_length).tolist()
         src_ids = src_ids.to(device)
 
         if strategy == "greedy": # 배치 단위
@@ -131,13 +133,14 @@ def generate_predictions( # test 로더를 돌며 번역 결과를 records로 �
         if sample_size is not None: # greedy는 배치 단위라 sample_size를 넘칠 수 있으므로 잘라냄
             hypotheses = hypotheses[: sample_size - len(records)]
 
-        for source, reference, hypothesis, latency_ms in zip(src_text, tgt_text, hypotheses, latencies):
+        for source, reference, hypothesis, latency_ms, truncated in zip(src_text, tgt_text, hypotheses, latencies, source_truncated):
             records.append({
                 "id": len(records), # test split 내 순번 (test 로더는 shuffle = False)
                 "source": source,
                 "reference": reference,
                 "hypothesis": hypothesis,
                 "latency_ms": round(latency_ms, 3),
+                "source_truncated": truncated,
             })
 
         if hypotheses:
@@ -208,6 +211,7 @@ if __name__ == "__main__":
     decode_kwargs = config["inference"].get(strategy, {}) # greedy는 하이퍼파라미터 섹션이 없으므로 {}
     sample_size = config["inference"]["sample_size"]
     use_comet = config["inference"].get("evaluation", {}).get("use_comet", False) # COMET은 GPU 권장 (CPU에선 매우 느림)
+    length_bins = get_length_bins(config) # 원문 길이 구간 경계 (LLM 평가와 공유)
     
     reset_peak_vram(device)
     start_time = time.time()
@@ -233,10 +237,13 @@ if __name__ == "__main__":
     throughput = len(records) / elapsed # 초당 문장 처리 수
     logger.info(f"Latency p50 = {latency_stats['latency_p50_ms']:.1f} ms, p95 = {latency_stats['latency_p95_ms']:.1f} ms, throughput = {throughput:.2f} 문장/초")
 
-    predictions_path = f"outputs/predictions/{Path(model_checkpoint_path).stem}-{strategy}.jsonl"
-    save_predictions(records, predictions_path)
-    metrics = evaluate(records, use_comet = use_comet)
+    metrics = evaluate(records, use_comet = use_comet) # use_comet이면 records에 문장별 COMET 점수도 추가됨
     logger.info(f"Test 평가 결과({strategy}): " + ", ".join(f"{k} = {v:.4f}" for k, v in metrics.items()))
+    length_breakdown = evaluate_by_length(records, length_bins)
+    logger.info(format_length_breakdown(length_breakdown))
+
+    predictions_path = f"outputs/predictions/{Path(model_checkpoint_path).stem}-{strategy}.jsonl"
+    save_predictions(records, predictions_path) # 평가 후 저장 → 문장별 COMET 점수까지 포함
 
     # wandb·MLflow 공통 metric (이름은 이후 LLM 평가 run과 동일하게 사용)
     eval_metrics = {
@@ -246,6 +253,7 @@ if __name__ == "__main__":
         **({"peak_vram_mb": peak_vram_mb} if peak_vram_mb is not None else {}), # cuda에서만 기록
         **latency_stats, # latency_p50_ms, latency_p95_ms, latency_mean_ms
         "throughput_sent_per_sec": throughput,
+        **flatten_length_metrics(length_breakdown), # test_chrf/len_201-300 등
     }
 
     wandb.log(eval_metrics)
@@ -269,9 +277,11 @@ if __name__ == "__main__":
             "batch_size": batch_size,
             "sample_size": sample_size,
             "use_comet": use_comet,
+            "length_bins": length_bins,
             **{f"decode.{k}": v for k, v in decode_kwargs.items()},
         })
         mlflow.log_metrics(eval_metrics)
+        mlflow.log_dict(length_breakdown, "length_breakdown.json") # 구간별 전체 표
         mlflow.log_artifact(predictions_path, artifact_path = "predictions")
     logger.info(f"Total Inference Time: {elapsed:.2f}초")
     

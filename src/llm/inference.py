@@ -10,7 +10,7 @@ from src.seq2seq.utils import load_config, set_seed
 from src.common.splits import load_splits, get_test_examples
 from src.llm.prompt import build_prompt
 from src.llm.postprocess import clean_translation
-from src.evaluation.metrics import evaluate, save_predictions
+from src.evaluation.metrics import evaluate, save_predictions, get_length_bins, evaluate_by_length, flatten_length_metrics, format_length_breakdown
 from src.evaluation.efficiency import summarize_latency, hf_model_stats
 
 
@@ -81,7 +81,7 @@ if __name__ == "__main__":
         r["latency_ms"] = round(latencies[r["id"]], 3) if r["id"] in latencies else None # 측정 안 한 문장은 None
         
     predictions_path = f"outputs/predictions/{run_tag}.jsonl"
-    save_predictions(records, predictions_path)
+    save_predictions(records, predictions_path) # 생성 비용이 크므로 평가(COMET) 전에 먼저 저장해 둠
 
     del llm # COMET이 GPU를 쓸 수 있도록 vLLM이 잡아둔 메모리 해제
     gc.collect()
@@ -90,7 +90,11 @@ if __name__ == "__main__":
     logger.info(f"vLLM 해제 후 GPU 여유 메모리: {free_gb:.1f} / {total_gb:.1f} GB")
 
     use_comet = llm_cfg.get("evaluation", {}).get("use_comet", False)
-    metrics = evaluate(records, use_comet = use_comet)
+    metrics = evaluate(records, use_comet = use_comet) # use_comet이면 records에 문장별 COMET 점수도 추가됨
+    length_bins = get_length_bins(config) # 원문 길이 구간 경계 (RNN 평가와 공유)
+    length_breakdown = evaluate_by_length(records, length_bins)
+    if use_comet:
+        save_predictions(records, predictions_path) # 문장별 COMET 점수를 포함해 다시 저장
     
     # 효율 지표 계산 및 기록
     latency_stats = summarize_latency([r["latency_ms"] for r in records if r["latency_ms"] is not None])
@@ -106,6 +110,7 @@ if __name__ == "__main__":
     
     truncated_rate = sum(r["finish_reason"] == "length" for r in records) / len(records)
     logger.info(f"Test 평가 결과({run_tag}): " + ", ".join(f"{k} = {v:.4f}" for k, v in metrics.items()) + f", 잘린 비율 = {truncated_rate:.1%}")
+    logger.info(format_length_breakdown(length_breakdown))
 
     mlflow.set_tracking_uri(config["mlflow"]["tracking_uri"])
     mlflow.set_experiment(llm_cfg["mlflow_experiment"])
@@ -128,11 +133,14 @@ if __name__ == "__main__":
             "vllm_version": vllm_version,
             "latency_sample_size": llm_cfg["latency_sample_size"], # latency를 한 건씩 측정한 문장 수
             "enable_prefix_caching": llm_cfg["vllm"]["enable_prefix_caching"],
+            "length_bins": length_bins,
         })
         mlflow.log_metrics({
             **{f"test_{k}": v for k, v in metrics.items()}, # RNN 평가 run과 같은 이름
             "truncated_rate": truncated_rate,
             **efficiency, # latency_p50/p95/mean_ms, throughput_sent_per_sec, output_tokens_per_sec, num_params, weight_vram_mb, num_trainable_params
+            **flatten_length_metrics(length_breakdown), # test_chrf/len_201-300 등 (RNN 평가 run과 같은 이름)
         })
+        mlflow.log_dict(length_breakdown, "length_breakdown.json") # 구간별 전체 표
         mlflow.log_text(llm_cfg["prompt"]["system"] + "\n\n" + llm_cfg["prompt"]["user"], "prompt.txt") # 프롬프트 전문
         mlflow.log_artifact(predictions_path, artifact_path = "predictions")
