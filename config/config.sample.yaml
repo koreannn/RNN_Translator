@@ -92,6 +92,26 @@ llm:
   evaluation:
     use_comet: true
 
+  lora:
+    base_model: "Qwen/Qwen3-1.7B"
+    train_size: 20000   # null이면 train split 전체 (32만 쌍)
+    valid_size: 500     # 학습 중 eval loss용
+    max_seq_length: 2048 # 프롬프트 + 번역문 토큰 수 상한 (넘는 예시는 제외)
+    output_dir: "checkpoints/qwen3-1.7b-lora"
+    r: 16
+    alpha: 32
+    dropout: 0.05
+    target_modules: "all-linear"
+    learning_rate: 2.0e-4
+    num_train_epochs: 1
+    per_device_train_batch_size: 2
+    gradient_accumulation_steps: 8 # 실효 배치 16
+    warmup_ratio: 0.03
+    logging_steps: 10
+    eval_steps: 200
+    save_steps: 200
+    max_steps: -1 # 스모크 테스트 때만 양수 (설정하면 epoch보다 우선)
+
   vllm:
       dtype: "bfloat16"
       max_model_len: 4096 # 프롬프트 + 번역문 최대 길이
