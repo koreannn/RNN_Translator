@@ -28,6 +28,8 @@ dependencies = [
     "hf-transfer>=0.1.9",
     "boto3>=1.43.110",
     "psycopg[binary]>=3.3.6",
+    "trl>=1.15.0",
+    "peft>=0.21.2",
 ]
 
 [tool.uv]
