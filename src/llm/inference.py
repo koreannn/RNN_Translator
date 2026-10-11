@@ -2,6 +2,9 @@ import gc
 import time
 import torch
 import mlflow
+import json
+
+from pathlib import Path
 from transformers import AutoTokenizer
 from vllm import LLM, SamplingParams, __version__ as vllm_version
 from loguru import logger
@@ -58,8 +61,13 @@ if __name__ == "__main__":
     config = load_config("config/config.yaml")
     llm_cfg = config["llm"]
     set_seed(config["seed"])
-    model_name = llm_cfg["model_name"]
-    run_tag = f"{model_name.split('/')[-1].lower()}-zeroshot" # 예: qwen3-0.6b-zeroshot
+    
+    model_name = llm_cfg["model_name"] # Hub 이름 또는 LoRA 병합 모델 폴더
+    lora_info_path = Path(model_name) / "lora_info.json"
+    lora_info = json.loads(lora_info_path.read_text()) if lora_info_path.exists() else None # 병합 모델이면 학습 정보가 있음
+    method = "lora" if lora_info else "zero-shot"
+    base_model = lora_info["base_model"] if lora_info else model_name # MLflow 비교용 모델 이름 (병합 모델도 base 이름으로)
+    run_tag = f"{base_model.split('/')[-1].lower()}-{'lora' if lora_info else 'zeroshot'}" # 예: qwen3-1.7b-lora
 
     examples = get_test_examples(load_splits(config["data"], config["seed"]), llm_cfg["sample_size"])
     tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -104,7 +112,7 @@ if __name__ == "__main__":
         "throughput_sent_per_sec": len(records) / batch_elapsed, # RNN과 같은 이름
         "output_tokens_per_sec": total_output_tokens / batch_elapsed, # LLM 전용: 출력 길이 차이를 감안한 속도
         **hf_model_stats(model_name, llm_cfg["vllm"]["dtype"]), # num_params, weight_vram_mb
-        "num_trainable_params": 0, # zero-shot은 이 과제를 위해 학습한 파라미터 없음
+        "num_trainable_params": lora_info["num_trainable_params"] if lora_info else 0, # zero-shot은 학습한 파라미터 없음
     }
     logger.info("효율: " + ", ".join(f"{k} = {v:,.2f}" for k, v in efficiency.items()))
     
@@ -114,14 +122,16 @@ if __name__ == "__main__":
 
     mlflow.set_tracking_uri(config["mlflow"]["tracking_uri"])
     mlflow.set_experiment(llm_cfg["mlflow_experiment"])
+    
     with mlflow.start_run(
         run_name = f"eval-{run_tag}",
+        parent_run_id = lora_info["train_run_id"] if lora_info else None, # LoRA는 학습 run의 자식으로 (RNN과 같은 구조)
         tags = {
             "run_type": "eval",
             "model_family": "llm",
-            "method": "zero-shot",
+            "method": method,
             "decoding": "greedy",
-            "model_name": model_name,
+            "model_name": base_model,
         },
     ):
         mlflow.log_params({
@@ -134,6 +144,8 @@ if __name__ == "__main__":
             "latency_sample_size": llm_cfg["latency_sample_size"], # latency를 한 건씩 측정한 문장 수
             "enable_prefix_caching": llm_cfg["vllm"]["enable_prefix_caching"],
             "length_bins": length_bins,
+            "model_path": model_name, # 실제로 로드한 경로 (병합 모델이면 로컬 폴더)
+            "gpu_memory_utilization": llm_cfg["vllm"]["gpu_memory_utilization"], # throughput에 영향
         })
         mlflow.log_metrics({
             **{f"test_{k}": v for k, v in metrics.items()}, # RNN 평가 run과 같은 이름
