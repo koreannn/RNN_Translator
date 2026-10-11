@@ -50,16 +50,31 @@ train:
   model_architecture: "Seq2Seq-with-GRU"
 
 
-evaluation: # RNN·소형 Transformer·LLM 평가 공통
+evaluation: # RNN·LLM 평가 공통
   length_bins: [50, 200, 300, 400] # 원문 길이(공백 제외 글자 수) 구간 경계 → 0-50 / 51-200 / 201-300 / 301-400 / 401-inf
+
+
+mini_transformer:
+  model_name: "Helsinki-NLP/opus-mt-ko-en" # MarianMT, 약 7,700만 파라미터 (RNN과 비슷한 크기)
+  sample_size: 1000 # null일 경우 test셋 전체
+  batch_size: 1
+  max_length: 512 # 입력 토큰 상한 (모델의 위치 임베딩 한계)
+  max_new_tokens: 400 # RNN inference.max_new_token과 동일 (문장 단위 번역이면 문장당 상한)
+  split_sentences: true # 문장 단위로 나눠 번역 후 이어 붙임 (문장 단위로 학습된 모델이라 문단을 통째로 넣으면 앞부분만 번역함)
+  decoding_strategy: beam # greedy / beam
+  beam:
+    num_beams: 4 # RNN beam_size와 동일
+  mlflow_experiment: "mini-transformer-translator"
+  evaluation:
+    use_comet: true
 
 
 inference:
   max_length: 400
   max_new_token: 400
-  batch_size: 4
-  checkpoint_path: "checkpoints/best.pt"
-  decoding_strategy: greedy # greedy / beam / hybrid
+  batch_size: 1
+  checkpoint_path: "checkpoints/best_weights.pt"
+  decoding_strategy: beam # greedy / beam / hybrid
   source_run_id: "" # 직접 지정해서 돌릴 경우에만 사용
   sample_size: 1000 # null일 경우 test셋 전체
 
@@ -76,23 +91,8 @@ inference:
     use_comet: true
 
 
-mini_transformer:
-  model_name: "Helsinki-NLP/opus-mt-ko-en" # MarianMT, 약 7,700만 파라미터 (RNN과 비슷한 크기)
-  sample_size: 1000 # null일 경우 test셋 전체
-  batch_size: 1
-  max_length: 512 # 입력 토큰 상한 (모델의 위치 임베딩 한계)
-  max_new_tokens: 400 # RNN inference.max_new_token과 동일 (문장 단위 번역이면 문장당 상한)
-  split_sentences: true # 문장 단위로 나눠 번역 후 이어 붙임 (문장 단위로 학습된 모델이라 문단을 통째로 넣으면 앞부분만 번역함)
-  decoding_strategy: greedy # greedy / beam
-  beam:
-    num_beams: 4 # RNN beam_size와 동일
-  mlflow_experiment: "mini-transformer-translator"
-  evaluation:
-    use_comet: true
-
-
 llm:
-  model_name: "Qwen/Qwen3-0.6B"
+  model_name: "checkpoints/qwen3-1.7b-lora/merged"
   sample_size: 1000
   latency_sample_size: 200
   prompt:
@@ -110,7 +110,7 @@ llm:
   lora:
     base_model: "Qwen/Qwen3-1.7B"
     train_size: 20000   # null이면 train split 전체 (32만 쌍)
-    valid_size: 500     # 학습 중 eval loss용
+    valid_size: 500 # 학습 중 eval loss용
     max_seq_length: 2048 # 프롬프트 + 번역문 토큰 수 상한 (넘는 예시는 제외)
     output_dir: "checkpoints/qwen3-1.7b-lora"
     r: 16
@@ -130,7 +130,7 @@ llm:
   vllm:
       dtype: "bfloat16"
       max_model_len: 4096 # 프롬프트 + 번역문 최대 길이
-      gpu_memory_utilization: 0.85 # vLLM이 미리 잡아둘 GPU 메모리 비율
+      gpu_memory_utilization: 0.95 # vLLM이 미리 잡아둘 GPU 메모리 비율
       enable_prefix_caching: false # KV 캐싱 ON/OFF용 (캐시 재사용으로 인해 latency 측정이 왜곡되지 않도록)
 
   generation:
