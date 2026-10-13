@@ -111,3 +111,10 @@ root/
 
 - [HuggingFace Helsinki-NLP/opus-100 'en-ko' 데이터셋](https://huggingface.co/datasets/Helsinki-NLP/opus-100)
 
+
+
+<br>
+
+### 추후 개발 방향
+
+- '카카오톡 문자를 영어로 보내면서 영어공부하기'의 답변 문장을 제공해주는 서비스 방향으로 확장해보기
