@@ -144,8 +144,10 @@ serving:
   registered_model_name: "rnn-translator"
   default_decoding: "greedy" # greedy / beam (요청마다 params로 변경 가능)
   source_train_run_id: "ee39651a00aa4782bdf2441acd8f79e3" # 원래 학습 run (서버 초기화 전 DB, 기록용)
+  api_url: "http://localhost:5001" # Docker 서빙 컨테이너 주소 (app.py에서 호출됨)
 
   lora:
     adapter_dir: "checkpoints/final_lora"
     registered_model_name: "qwen3-1.7b-lora-translator"
     max_new_token: 1024
+    
