@@ -67,6 +67,22 @@ mini_transformer:
   mlflow_experiment: "mini-transformer-translator"
   evaluation:
     use_comet: true
+  
+  finetune:
+    base_model: "Helsinki-NLP/opus-mt-ko-en"
+    train_size: 20000 # LoRA와 같은 샘플링 → 같은 2만 쌍
+    valid_size: 500
+    max_length: 512 # 모델 구조상 한계. 넘는 쌍은 자르지 않고 제외
+    output_dir: "checkpoints/opus-mt-ko-en-ft"
+    learning_rate: 5.0e-5 # 소수점 필수 (PyYAML은 5e-5를 문자열로 읽음)
+    num_train_epochs: 3
+    per_device_train_batch_size: 8
+    gradient_accumulation_steps: 2 # 실효 배치 16 (LoRA와 동일)
+    warmup_ratio: 0.03
+    logging_steps: 50
+    eval_steps: 250
+    save_steps: 250 # eval_steps와 같아야 가장 좋은 체크포인트를 고를 수 있음
+    max_steps: -1 # 시험 학습 때만 양수
 
 
 inference:

@@ -2,6 +2,8 @@ import re
 import time
 import mlflow
 import transformers
+
+from pathlib import Path
 from loguru import logger
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
@@ -82,16 +84,20 @@ if __name__ == "__main__":
     mt_cfg = config["mini_transformer"]
     set_seed(config["seed"])
 
-    model_name = mt_cfg["model_name"]
+    model_name = mt_cfg["model_name"] # Hub 이름 또는 파인튜닝 결과 폴더
     strategy = mt_cfg["decoding_strategy"]
-    run_tag = f"{model_name.split('/')[-1].lower()}-{strategy}" # 예: opus-mt-ko-en-greedy
+    run_id_path = Path(model_name) / "mlflow_run_id.txt"
+    train_run_id = run_id_path.read_text().strip() if run_id_path.exists() else None # 파인튜닝 모델이면 학습 run ID가 있음
+    method = "fine-tuned" if train_run_id else "pretrained"
+    base_name = Path(model_name).parent.name if train_run_id else model_name.split("/")[-1].lower()
+    run_tag = f"{base_name}-{strategy}" # 예: opus-mt-ko-en-greedy / opus-mt-ko-en-ft-greedy
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSeq2SeqLM.from_pretrained(model_name).to(device)
     model.eval()
     param_stats = {
         "num_params": count_parameters(model)["num_params"],
-        "num_trainable_params": 0, # 사전학습 모델을 그대로 사용 → 이 과제를 위해 학습한 파라미터 없음 (LLM zero-shot과 같은 기준)
+                "num_trainable_params": count_parameters(model)["num_params"] if train_run_id else 0, # 전체 파인튜닝이면 모든 파라미터를 학습
     }
     logger.info(f"# of model param: {param_stats['num_params']:,}")
 
@@ -128,10 +134,11 @@ if __name__ == "__main__":
     mlflow.set_experiment(mt_cfg["mlflow_experiment"])
     with mlflow.start_run(
         run_name = f"eval-{run_tag}",
+        parent_run_id = train_run_id, # 파인튜닝 모델은 학습 run의 자식으로 (LoRA와 같은 구조)
         tags = {
             "run_type": "eval",
-            "model_family": "mini-transformer", # rnn / mini-transformer / llm
-            "method": "pretrained", # scratch / pretrained / zero-shot / lora
+            "model_family": "mini-transformer",
+            "method": method, # scratch / pretrained / fine-tuned / zero-shot / lora
             "decoding": strategy,
             "model_name": model_name,
         },
