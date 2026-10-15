@@ -8,6 +8,7 @@ from transformers import (
     DataCollatorForSeq2Seq,
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
+    EarlyStoppingCallback,
 )
 
 from src.seq2seq.utils import load_config, set_seed
@@ -85,6 +86,7 @@ if __name__ == "__main__":
             eval_dataset = valid_dataset,
             data_collator = DataCollatorForSeq2Seq(tokenizer, model = model), # 배치별 padding, labels의 padding은 -100(loss 제외)
             processing_class = tokenizer,
+            callbacks = [EarlyStoppingCallback(early_stopping_patience = 3, early_stopping_threshold = 0.005)],
         )
         # 이름은 Trainer가 자동 기록하는 TrainingArguments와 겹치지 않게
         mlflow.log_params({
