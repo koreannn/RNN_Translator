@@ -20,3 +20,18 @@ def get_test_examples(splits, sample_size = None): # LLM 추론용: 토큰화 �
         {"id": i, "source": test[i]["korean"], "reference": test[i]["english"]}
         for i in range(n)
     ]
+
+def get_eval_examples(config, sample_size = None): # config의 evaluation.test_set에 따라 평가 데이터 선택 (모든 모델 공통)
+    test_set = (config.get("evaluation") or {}).get("test_set", "in_domain")
+    
+    if test_set == "in_domain":
+        return get_test_examples(load_splits(config["data"], config["seed"]), sample_size)
+    
+    if test_set == "ood":
+        # opus-100 en-ko 공식 test: 구어체·짧은 문장, 어떤 학습에도 쓰지 않은 데이터
+        test = load_dataset(config["data"]["dataset1"], config["data"]["dataset1_config"])["test"]
+        pairs = [(r["translation"]["ko"].strip(), r["translation"]["en"].strip()) for r in test]
+        pairs = [(ko, en) for ko, en in pairs if ko and en] # 빈 문장 쌍 제외
+        n = len(pairs) if sample_size is None else min(sample_size, len(pairs))
+        return [{"id": i, "source": ko, "reference": en} for i, (ko, en) in enumerate(pairs[:n])]
+    raise ValueError(f"알 수 없는 test_set: {test_set} (in_domain | ood)")

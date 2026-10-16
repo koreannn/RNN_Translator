@@ -26,7 +26,7 @@ class CustomDataLoader:
 
         self.train_data = TranslationDataset(splits["train"])
         self.valid_data = TranslationDataset(splits["valid"])
-        self.test_data = TranslationDataset(splits["test"])
+        self.test_data = TranslationDataset([{"korean": e["source"], "english": e["referece"] for e in get_eval_examples(self.config)}])
         
         
         self.kor_tokenizer = kor_tokenizer

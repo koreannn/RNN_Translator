@@ -69,7 +69,7 @@ if __name__ == "__main__":
     base_model = lora_info["base_model"] if lora_info else model_name # MLflow 비교용 모델 이름 (병합 모델도 base 이름으로)
     run_tag = f"{base_model.split('/')[-1].lower()}-{'lora' if lora_info else 'zeroshot'}" # 예: qwen3-1.7b-lora
 
-    examples = get_test_examples(load_splits(config["data"], config["seed"]), llm_cfg["sample_size"])
+    examples = get_eval_examples(config, llm_cfg["sample_size"])
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     llm = LLM(
         model = model_name,
