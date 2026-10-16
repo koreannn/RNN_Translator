@@ -1,7 +1,7 @@
 import pandas as pd
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split, ConcatDataset
-from src.common.splits import load_splits
+from src.common.splits import load_splits, get_eval_examples
 
 
 class TranslationDataset(Dataset):
@@ -26,7 +26,7 @@ class CustomDataLoader:
 
         self.train_data = TranslationDataset(splits["train"])
         self.valid_data = TranslationDataset(splits["valid"])
-        self.test_data = TranslationDataset([{"korean": e["source"], "english": e["referece"] for e in get_eval_examples(self.config)}])
+        self.test_data = TranslationDataset([{"korean": e["source"], "english": e["reference"]} for e in get_eval_examples(self.config)])
         
         
         self.kor_tokenizer = kor_tokenizer

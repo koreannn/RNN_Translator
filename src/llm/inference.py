@@ -10,7 +10,7 @@ from vllm import LLM, SamplingParams, __version__ as vllm_version
 from loguru import logger
 
 from src.seq2seq.utils import load_config, set_seed
-from src.common.splits import load_splits, get_test_examples
+from src.common.splits import get_eval_examples
 from src.llm.prompt import build_prompt
 from src.llm.postprocess import clean_translation
 from src.evaluation.metrics import evaluate, save_predictions, get_length_bins, evaluate_by_length, flatten_length_metrics, format_length_breakdown
@@ -59,6 +59,8 @@ def measure_latency(llm, tokenizer, examples, llm_cfg): # 한 건씩 생성 → 
 
 if __name__ == "__main__":
     config = load_config("config/config.yaml")
+    test_set = config.get("evaluation", {}).get("test_set", "in_domain")
+    suffix = "" if test_set == "in_domain" else f"-{test_set}"
     llm_cfg = config["llm"]
     set_seed(config["seed"])
     
@@ -67,7 +69,7 @@ if __name__ == "__main__":
     lora_info = json.loads(lora_info_path.read_text()) if lora_info_path.exists() else None # 병합 모델이면 학습 정보가 있음
     method = "lora" if lora_info else "zero-shot"
     base_model = lora_info["base_model"] if lora_info else model_name # MLflow 비교용 모델 이름 (병합 모델도 base 이름으로)
-    run_tag = f"{base_model.split('/')[-1].lower()}-{'lora' if lora_info else 'zeroshot'}" # 예: qwen3-1.7b-lora
+    run_tag = f"{base_model.split('/')[-1].lower()}-{'lora' if lora_info else 'zeroshot'}" + suffix # 예: qwen3-1.7b-lora
 
     examples = get_eval_examples(config, llm_cfg["sample_size"])
     tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -132,6 +134,7 @@ if __name__ == "__main__":
             "method": method,
             "decoding": "greedy",
             "model_name": base_model,
+            "test_set": test_set, # in_domain(위키 test) / ood(구어체)
         },
     ):
         mlflow.log_params({

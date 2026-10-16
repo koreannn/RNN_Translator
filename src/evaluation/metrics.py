@@ -50,6 +50,7 @@ def evaluate(records, use_comet = False) -> dict: # 모델 종류와 무관하�
         metrics["comet"], sentence_scores = compute_comet(sources, hypotheses, references)
         for record, score in zip(records, sentence_scores): # 문장별 점수를 records에 저장 (길이별 평가·오류 분석용)
             record["comet"] = score
+    metrics["empty_rate"] = sum(not r["hypothesis"].strip() for r in records) / len(records) # 번역문이 비어 있는 비율 (도메인 밖 입력에서 첫 토큰부터 문장 끝을 내는 경우)
     return metrics
 
 

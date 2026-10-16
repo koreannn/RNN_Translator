@@ -8,7 +8,7 @@ from loguru import logger
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
 from src.seq2seq.utils import load_config, resolve_device, set_seed
-from src.common.splits import load_splits, get_test_examples
+from src.common.splits import get_eval_examples
 from src.evaluation.metrics import evaluate, save_predictions, get_length_bins, evaluate_by_length, flatten_length_metrics, format_length_breakdown
 from src.evaluation.efficiency import count_parameters, reset_peak_vram, get_peak_vram_mb, measure_ms, summarize_latency
 
@@ -81,6 +81,8 @@ if __name__ == "__main__":
     device = resolve_device()
     logger.info(f"device: {device}")
     config = load_config("config/config.yaml")
+    test_set = config.get("evaluation", {}).get("test_set", "in_domain")
+    suffix = "" if test_set == "in_domain" else f"-{test_set}"
     mt_cfg = config["mini_transformer"]
     set_seed(config["seed"])
 
@@ -90,7 +92,7 @@ if __name__ == "__main__":
     train_run_id = run_id_path.read_text().strip() if run_id_path.exists() else None # 파인튜닝 모델이면 학습 run ID가 있음
     method = "fine-tuned" if train_run_id else "pretrained"
     base_name = Path(model_name).parent.name if train_run_id else model_name.split("/")[-1].lower()
-    run_tag = f"{base_name}-{strategy}" # 예: opus-mt-ko-en-greedy / opus-mt-ko-en-ft-greedy
+    run_tag = f"{base_name}-{strategy}" + suffix # 예: opus-mt-ko-en-greedy / opus-mt-ko-en-ft-beam-ood (위키 test면 접미사 없음)
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSeq2SeqLM.from_pretrained(model_name).to(device)
@@ -101,7 +103,7 @@ if __name__ == "__main__":
     }
     logger.info(f"# of model param: {param_stats['num_params']:,}")
 
-    examples = get_test_examples(load_splits(config["data"], config["seed"]), mt_cfg["sample_size"])
+    examples = get_eval_examples(config, mt_cfg["sample_size"])
     use_comet = mt_cfg.get("evaluation", {}).get("use_comet", False)
     length_bins = get_length_bins(config) # 원문 길이 구간 경계 (RNN·LLM 평가와 공유)
 
@@ -141,6 +143,7 @@ if __name__ == "__main__":
             "method": method, # scratch / pretrained / fine-tuned / zero-shot / lora
             "decoding": strategy,
             "model_name": model_name,
+            "test_set": test_set, # in_domain(위키 test) / ood(구어체)
         },
     ):
         mlflow.log_params({

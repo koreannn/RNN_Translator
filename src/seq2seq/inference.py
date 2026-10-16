@@ -159,6 +159,8 @@ if __name__ == "__main__":
     logger.info(f"device: {device}")
     # logger.add(f"logs/{wandb_exp_name}", encoding = "utf-8")
     config = load_config("config/config.yaml")
+    test_set = config.get("evaluation", {}).get("test_set", "in_domain")
+    suffix = "" if test_set == "in_domain" else f"-{test_set}"
     set_seed(config["seed"])
 
     # h_param
@@ -242,7 +244,7 @@ if __name__ == "__main__":
     length_breakdown = evaluate_by_length(records, length_bins)
     logger.info(format_length_breakdown(length_breakdown))
 
-    predictions_path = f"outputs/predictions/{Path(model_checkpoint_path).stem}-{strategy}.jsonl"
+    predictions_path = f"outputs/predictions/{Path(model_checkpoint_path).stem}-{strategy}{suffix}.jsonl"
     save_predictions(records, predictions_path) # 평가 후 저장 → 문장별 COMET 점수까지 포함
 
     # wandb·MLflow 공통 metric (이름은 이후 LLM 평가 run과 동일하게 사용)
@@ -263,13 +265,14 @@ if __name__ == "__main__":
     mlflow.set_tracking_uri(config["mlflow"]["tracking_uri"])
     mlflow.set_experiment(config["mlflow"]["experiment_name"]) # 부모(학습 run)와 같은 experiment여야 함
     with mlflow.start_run(
-        run_name = f"eval-{strategy}",
+        run_name = f"eval-{strategy}" + suffix,
         parent_run_id = source_run_id, # None이면 독립 run
         tags = {
             "run_type": "eval",
             "model_family": "rnn", # rnn / llm
             "method": "scratch", # scratch / zero-shot / lora
             "decoding": strategy,
+            "test_set": test_set, # in_domain(위키 test) / ood(구어체)
         },
     ):
         mlflow.log_params({
