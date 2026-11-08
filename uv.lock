@@ -3697,7 +3697,9 @@ source = { editable = "." }
 dependencies = [
     { name = "boto3" },
     { name = "datasets" },
+    { name = "fastapi" },
     { name = "hf-transfer" },
+    { name = "httpx" },
     { name = "loguru" },
     { name = "matplotlib" },
     { name = "mlflow" },
@@ -3715,6 +3717,7 @@ dependencies = [
     { name = "triton", marker = "sys_platform == 'linux'" },
     { name = "trl" },
     { name = "unbabel-comet" },
+    { name = "uvicorn" },
     { name = "vllm", marker = "sys_platform == 'linux'" },
     { name = "wandb" },
 ]
@@ -3723,7 +3726,9 @@ dependencies = [
 requires-dist = [
     { name = "boto3", specifier = ">=1.43.110" },
     { name = "datasets", specifier = ">=4.8.2" },
+    { name = "fastapi", specifier = ">=0.141.1" },
     { name = "hf-transfer", specifier = ">=0.1.9" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "matplotlib", specifier = ">=3.11.0" },
     { name = "mlflow", specifier = ">=3.17.0" },
@@ -3741,6 +3746,7 @@ requires-dist = [
     { name = "triton", marker = "sys_platform == 'linux'", specifier = ">=3.2.0" },
     { name = "trl", specifier = ">=1.15.0" },
     { name = "unbabel-comet", specifier = ">=2.2.7" },
+    { name = "uvicorn", specifier = ">=0.49.0" },
     { name = "vllm", marker = "sys_platform == 'linux'", specifier = "==0.8.5.post1" },
     { name = "wandb", specifier = ">=0.25.0" },
 ]

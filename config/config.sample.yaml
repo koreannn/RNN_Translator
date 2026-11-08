@@ -162,6 +162,12 @@ serving:
   default_decoding: "greedy" # greedy / beam (요청마다 params로 변경 가능)
   source_train_run_id: "ee39651a00aa4782bdf2441acd8f79e3" # 원래 학습 run (서버 초기화 전 DB, 기록용)
   api_url: "http://localhost:5001" # Docker 서빙 컨테이너 주소 (app.py에서 호출됨)
+  gateway:
+    default_model: "rnn-seq2seq"
+    backends: # 요청의 model 이름 (모델 서버 주소)
+      rnn-seq2seq: "http://localhost:5001"
+    timeout_sec: 60
+    max_chars: 1000
 
   lora:
     adapter_dir: "checkpoints/final_lora"

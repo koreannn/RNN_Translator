@@ -33,3 +33,7 @@ note.py
 docs
 # 실제 설정 파일 (샘플만 커밋)
 config/config.yaml
+
+# postman 개인 설정
+.postman/
+postman/globals/
