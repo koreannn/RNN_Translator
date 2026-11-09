@@ -166,6 +166,7 @@ serving:
     default_model: "rnn-seq2seq"
     backends: # 요청의 model 이름 (모델 서버 주소)
       rnn-seq2seq: "http://localhost:5001"
+      llm-lora: "http://localhost:5003" # qwen3-1.7b-lora
     timeout_sec: 60
     max_chars: 1000
 
