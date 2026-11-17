@@ -9,7 +9,7 @@ from loguru import logger
 from mlflow import MlflowClient
 from mlflow.models import infer_signature
 
-from src.seq2seq.utils import load_config
+from src.common.utils import load_config
 from src.serving.lora_pyfunc import LoRATranslator
 
 

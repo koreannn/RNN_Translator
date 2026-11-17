@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException
 from loguru import logger
 from pydantic import BaseModel, Field
 
-from src.seq2seq.utils import load_config
+from src.common.utils import load_config
 
 config = load_config("config/config.yaml")
 gw_cfg = config["serving"]["gateway"]

@@ -11,7 +11,7 @@ from transformers import (
     EarlyStoppingCallback,
 )
 
-from src.seq2seq.utils import load_config, set_seed
+from src.common.utils import load_config, set_seed
 from src.common.splits import load_splits
 
 

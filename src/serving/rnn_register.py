@@ -9,7 +9,7 @@ from mlflow import MlflowClient
 from mlflow.models import infer_signature
 from transformers import AutoTokenizer
 
-from src.seq2seq.utils import load_config
+from src.common.utils import load_config
 from src.serving.rnn_pyfunc import RNNTranslator
 
 

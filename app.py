@@ -2,7 +2,7 @@ import time
 import requests
 import streamlit as st
 
-from src.seq2seq.utils import load_config
+from src.common.utils import load_config
 
 CONFIG_PATH = "config/config.yaml"
 REQUEST_TIMEOUT_SEC = 120 # 긴 문단 + beam이면 수 초 이상 걸릴 수 있음

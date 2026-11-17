@@ -9,7 +9,7 @@ from transformers import AutoTokenizer
 from vllm import LLM, SamplingParams, __version__ as vllm_version
 from loguru import logger
 
-from src.seq2seq.utils import load_config, set_seed
+from src.common.utils import load_config, set_seed
 from src.common.splits import get_eval_examples
 from src.llm.prompt import build_prompt
 from src.llm.postprocess import clean_translation

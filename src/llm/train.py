@@ -6,7 +6,7 @@ from peft import LoraConfig
 from transformers import AutoModelForCausalLM, AutoTokenizer, TrainerCallback
 from trl import SFTConfig, SFTTrainer
 
-from src.seq2seq.utils import load_config, set_seed
+from src.common.utils import load_config, set_seed
 from src.common.splits import load_splits
 from src.llm.sft_data import build_sft_datasets
 

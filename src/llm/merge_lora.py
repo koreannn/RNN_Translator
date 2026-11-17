@@ -5,7 +5,7 @@ from loguru import logger
 from peft import PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from src.seq2seq.utils import load_config
+from src.common.utils import load_config
 
 
 if __name__ == "__main__":

@@ -7,7 +7,7 @@ from pathlib import Path
 from loguru import logger
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
-from src.seq2seq.utils import load_config, resolve_device, set_seed
+from src.common.utils import load_config, resolve_device, set_seed
 from src.common.splits import get_eval_examples
 from src.evaluation.metrics import evaluate, save_predictions, get_length_bins, evaluate_by_length, flatten_length_metrics, format_length_breakdown
 from src.evaluation.efficiency import count_parameters, reset_peak_vram, get_peak_vram_mb, measure_ms, summarize_latency

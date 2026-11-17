@@ -11,7 +11,7 @@ import numpy as np
 import requests
 from loguru import logger
 
-from src.seq2seq.utils import load_config
+from src.common.utils import load_config
 from src.common.splits import load_splits, get_test_examples
 
 UNIT_MB = {"B": 1 / 1024 ** 2, "kB": 1 / 1024, "KiB": 1 / 1024, "MB": 1, "MiB": 1, "GB": 1024, "GiB": 1024}

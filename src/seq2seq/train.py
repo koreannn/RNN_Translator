@@ -15,7 +15,7 @@ from torch.optim import Adam
 from loguru import logger
 from src.seq2seq.dataloader import CustomDataLoader
 from src.seq2seq.model import build_model
-from src.seq2seq.utils import load_config, resolve_device, set_seed
+from src.common.utils import load_config, resolve_device, set_seed
 from src.seq2seq.decoding import get_special_token_ids, greedy_decoding
 from src.evaluation.metrics import compute_bleu
 
