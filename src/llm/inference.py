@@ -99,7 +99,7 @@ if __name__ == "__main__":
     free_gb, total_gb = (x / 1024**3 for x in torch.cuda.mem_get_info())
     logger.info(f"vLLM 해제 후 GPU 여유 메모리: {free_gb:.1f} / {total_gb:.1f} GB")
 
-    use_comet = llm_cfg.get("evaluation", {}).get("use_comet", False)
+    use_comet = config["evaluation"].get("use_comet", False)
     metrics = evaluate(records, use_comet = use_comet) # use_comet이면 records에 문장별 COMET 점수도 추가됨
     length_bins = get_length_bins(config) # 원문 길이 구간 경계 (RNN·소형 Transformer 평가와 공유)
     length_breakdown = evaluate_by_length(records, length_bins)

@@ -5,7 +5,6 @@ import time
 import tempfile
 import torch
 import torch.nn.functional as F
-import wandb
 import mlflow
 
 from dataclasses import dataclass, asdict
@@ -71,7 +70,7 @@ def train(
     cfg, seq2seq_model, model_config,
     train_loader, valid_loader,
     kor_tokenizer, en_tokenizer,
-    device, wandb_config, wandb_exp_name,
+    device,
     checkpoint_dir = "checkpoints",
 ):
     optimizer = Adam([
@@ -111,19 +110,6 @@ def train(
         else:
             epochs_no_improve += 1
 
-    wandb.init(
-        entity = wandb_config["wandb_entity"],
-        project = wandb_config["wandb_project"],
-        name = wandb_exp_name,
-        config = {
-            "learning_rate": cfg.rnn_attn_fc_lr,
-            "batch_size": cfg.batch_size,
-            "architecture": wandb_config["wandb_architecture"],
-        }
-    )
-    wandb.define_metric('train/step')
-    wandb.define_metric('train/grad_norm_*', step_metric = 'train/step')
-
     special_ids = get_special_token_ids(kor_tokenizer, en_tokenizer)
 
     train_start_time = time.time()
@@ -157,12 +143,6 @@ def train(
             train_loss_sum += loss.item()
             train_steps += 1
             global_step += 1
-            wandb.log({
-                'train/step': global_step,
-                'train/grad_norm_total': total_grad_norm.item(),
-                'train/grad_norm_encoder_rnn': enc_grad_norm.item(),
-                'train/grad_norm_decoder_rnn': dec_grad_norm.item(),
-            })
             mlflow.log_metrics({
                 'train/grad_norm_total': total_grad_norm.item(),
                 'train/grad_norm_encoder_rnn': enc_grad_norm.item(),
@@ -217,13 +197,6 @@ def train(
 
         logger.info(f"epoch = {epoch + 1} train_loss = {train_avg_loss:.4f} valid_loss = {valid_avg_loss:.4f} valid_bleu = {valid_bleu:.2f}")
         epoch_elapsed = time.time() - epoch_start
-        wandb.log({
-            "epoch": epoch + 1,
-            "train_loss": train_avg_loss,
-            "valid_loss": valid_avg_loss,
-            "valid_bleu": valid_bleu,
-            "epoch_time_sec": epoch_elapsed,
-        })
 
         mlflow.log_metrics({
             "train_loss": train_avg_loss,
@@ -239,11 +212,8 @@ def train(
 
     # 조기 종료용 에포크 카운트
     actual_epochs = epoch + 1
-    if actual_epochs != cfg.epochs:
-        wandb.run.name = wandb_exp_name.replace(f"-ep{cfg.epochs}-", f"-ep{actual_epochs}-")
 
     total_train_time = time.time() - train_start_time
-    wandb.summary["total_train_time_sec"] = total_train_time
     mlflow.log_metric("total_train_time_sec", total_train_time)
     mlflow.log_metric("actual_epochs", actual_epochs)
     return actual_epochs # 로그 이름 바꾸기 위한 반환
@@ -267,15 +237,14 @@ if __name__ == "__main__":
     kor_pretrained_weight = AutoModel.from_pretrained(kor_tokenizer_name).embeddings.word_embeddings.weight.detach()
     en_pretrained_weight = AutoModel.from_pretrained(en_tokenizer_name).embeddings.word_embeddings.weight.detach()
 
-    # wandb
-    wandb_exp_name = cfg.exp_name
+    exp_name = cfg.exp_name
 
     # mlflow
     mlflow.set_tracking_uri(config["mlflow"]["tracking_uri"])
     mlflow.set_experiment(config["mlflow"]["experiment_name"])
 
     # 로그 기록
-    log_path = f"logs/{wandb_exp_name}-{time.strftime('%Y%m%d-%H%M%S')}.log"
+    log_path = f"logs/{exp_name}-{time.strftime('%Y%m%d-%H%M%S')}.log"
     logger.add(log_path, encoding = "utf-8")
 
     data_loader = CustomDataLoader(kor_tokenizer, en_tokenizer, max_length = cfg.max_length, batch_size = cfg.batch_size, config = config)
@@ -332,8 +301,6 @@ if __name__ == "__main__":
             kor_tokenizer = kor_tokenizer,
             en_tokenizer = en_tokenizer,
             device = device,
-            wandb_config = config["wandb"],
-            wandb_exp_name = wandb_exp_name,
             )
         elapsed = time.time() - start_time
         logger.info(f"학습 소요 시간: {elapsed:.2f}초")

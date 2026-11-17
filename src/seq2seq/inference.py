@@ -2,7 +2,6 @@ import time
 import random
 import json
 import torch
-import wandb
 import mlflow
 
 from loguru import logger
@@ -157,7 +156,6 @@ def generate_predictions( # test 로더를 돌며 번역 결과를 records로 �
 if __name__ == "__main__":
     device = resolve_device()
     logger.info(f"device: {device}")
-    # logger.add(f"logs/{wandb_exp_name}", encoding = "utf-8")
     config = load_config("config/config.yaml")
     test_set = config.get("evaluation", {}).get("test_set", "in_domain")
     suffix = "" if test_set == "in_domain" else f"-{test_set}"
@@ -172,19 +170,6 @@ if __name__ == "__main__":
     model_checkpoint_path = config["inference"]["checkpoint_path"]
     kor_tokenizer_name = config["model"]["kor_tokenizer"]
     en_tokenizer_name = config["model"]["en_tokenizer"]
-    
-    # wandb 세팅
-    wandb.init(
-        entity = config["wandb"]["wandb_entity"],
-        project = config["wandb"]["wandb_project"],
-        name = f"inference-{Path(model_checkpoint_path).stem}",
-        job_type = "inference",
-        config = {
-            "architecture": config["wandb"]["wandb_architecture"],
-            "checkpoint_path": model_checkpoint_path,
-            "batch_size": batch_size,
-        },
-    )
     
     kor_tokenizer = AutoTokenizer.from_pretrained(kor_tokenizer_name)
     en_tokenizer = AutoTokenizer.from_pretrained(en_tokenizer_name)
@@ -212,7 +197,7 @@ if __name__ == "__main__":
     strategy = config["inference"]["decoding_strategy"]
     decode_kwargs = config["inference"].get(strategy, {}) # greedy는 하이퍼파라미터 섹션이 없으므로 {}
     sample_size = config["inference"]["sample_size"]
-    use_comet = config["inference"].get("evaluation", {}).get("use_comet", False) # COMET은 GPU 권장 (CPU에선 매우 느림)
+    use_comet = config["evaluation"].get("use_comet", False) # COMET은 GPU 권장 (CPU에선 매우 느림)
     length_bins = get_length_bins(config) # 원문 길이 구간 경계 (소형 Transformer·LLM 평가와 공유)
     
     reset_peak_vram(device)
@@ -247,7 +232,7 @@ if __name__ == "__main__":
     predictions_path = f"outputs/predictions/{Path(model_checkpoint_path).stem}-{strategy}{suffix}.jsonl"
     save_predictions(records, predictions_path) # 평가 후 저장 → 문장별 COMET 점수까지 포함
 
-    # wandb·MLflow 공통 metric (이름은 이후 LLM 평가 run과 동일하게 사용)
+    # MLflow metric (이름은 이후 LLM 평가 run과 동일하게 사용)
     eval_metrics = {
         "inference_time_sec": elapsed,
         **{f"test_{k}": v for k, v in metrics.items()}, # test_bleu, test_chrf, (test_comet)
@@ -257,9 +242,6 @@ if __name__ == "__main__":
         "throughput_sent_per_sec": throughput,
         **flatten_length_metrics(length_breakdown), # test_chrf/len_201-300 등
     }
-
-    wandb.log(eval_metrics)
-    wandb.finish()
 
     # MLflow: 학습 run(부모) 아래에 평가 run(자식)으로 기록 → 모델별 평가 결과가 학습 run 하위에 쌓임
     mlflow.set_tracking_uri(config["mlflow"]["tracking_uri"])

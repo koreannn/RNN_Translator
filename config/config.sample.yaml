@@ -1,12 +1,6 @@
 seed: 123
 
 
-wandb:
-  wandb_entity: "koreannn-gangneung-national-university"
-  wandb_project: "pytorch-rnn-translator"
-  wandb_architecture: "Vanila-RNN-Seq2Seq"
-
-
 mlflow:
   tracking_uri: "http://127.0.0.1:5002"
   experiment_name: "rnn-translator"
@@ -23,139 +17,10 @@ data:
   train_domains: null
 evaluation:
   test_set: "natural" # natural | balanced
+  use_comet: true # COMET 계산 여부 (모든 모델 공통, 시험 실행 때만 false)
 
 
-model:
-  kor_tokenizer: "klue/bert-base"
-  en_tokenizer: "google-bert/bert-base-uncased"
 
-
-train:
-  h_param:
-    embedding_lr: 1.0e-5
-    rnn_attn_fc_lr: 1.0e-3
-    epochs: 1 # 40
-    embedding_dim: 768 # kor-tokenizer의 임베딩 차원에 맞춰서
-    hidden_dim: 768
-    init_scheme: "Orthogonal_Xavier" # default / Orthogonal_Xavier
-    use_layer_norm: False
-    grad_clip_max_norm: 5.0
-    batch_size: 32
-    max_length: 400
-    max_new_token: 400
-    valid_bleu_sample_size: 100 # 2000
-    early_stopping:
-      patience: 3 # valid loss가 이 횟수만큼 연속으로 개선되지 않을경우, early stopping
-      min_delta: 0.005
-  model_architecture: "Seq2Seq-with-GRU"
-
-
-evaluation: # RNN·LLM 평가 공통
-  length_bins: [50, 200, 300, 400] # 원문 길이(공백 제외 글자 수) 구간 경계 → 0-50 / 51-200 / 201-300 / 301-400 / 401-inf
-  test_set: "in_domain" # in_domain(위키 test) / ood(opus-100 en-ko test, 구어체 테스트셋)
-
-
-mini_transformer:
-  model_name: "checkpoints/opus-mt-ko-en-ft/final" # MarianMT, 약 7,700만 파라미터 (RNN과 비슷한 크기)
-  sample_size: 1000 # null일 경우 test셋 전체
-  batch_size: 1
-  max_length: 512 # 입력 토큰 상한 (모델의 위치 임베딩 한계)
-  max_new_tokens: 512 # RNN inference.max_new_token과 동일 (문장 단위 번역이면 문장당 상한)
-  split_sentences: false # 문장 단위로 나눠 번역 후 이어 붙임 (문장 단위로 학습된 모델이라 문단을 통째로 넣으면 앞부분만 번역함)
-  decoding_strategy: beam # greedy / beam
-  beam:
-    num_beams: 4 # RNN beam_size와 동일
-  mlflow_experiment: "mini-transformer-translator"
-  evaluation:
-    use_comet: true
-  
-  finetune:
-    base_model: "Helsinki-NLP/opus-mt-ko-en"
-    train_size: 20000 # LoRA와 같은 샘플링 → 같은 2만 쌍
-    valid_size: 500
-    max_length: 512 # 모델 구조상 한계. 넘는 쌍은 자르지 않고 제외
-    output_dir: "checkpoints/opus-mt-ko-en-ft"
-    learning_rate: 5.0e-5 # 소수점 필수 (PyYAML은 5e-5를 문자열로 읽음)
-    num_train_epochs: 10
-    per_device_train_batch_size: 8
-    gradient_accumulation_steps: 2 # 실효 배치 16 (LoRA와 동일)
-    warmup_ratio: 0.03
-    logging_steps: 50
-    eval_steps: 250
-    save_steps: 250 # eval_steps와 같아야 가장 좋은 체크포인트를 고를 수 있음
-    max_steps: -1 # 시험 학습 때만 양수
-
-
-inference:
-  max_length: 400
-  max_new_token: 400
-  batch_size: 1
-  checkpoint_path: "checkpoints/best_weights.pt"
-  decoding_strategy: beam # greedy / beam / hybrid
-  source_run_id: "" # 직접 지정해서 돌릴 경우에만 사용
-  sample_size: 1000 # null일 경우 test셋 전체
-
-  beam:
-    beam_size: 4
-    alpha: 0.6
-
-  hybrid:
-    temperature: 0.8
-    top_k: 50
-    top_p: 0.9
-
-  evaluation:
-    use_comet: true
-
-
-llm:
-  model_name: "checkpoints/qwen3-1.7b-lora/merged"
-  sample_size: 1000
-  latency_sample_size: 200
-  prompt:
-    version: "v1" # MLflow에 기록될 짧은 이름
-    system: "You are a professional translator. Translate Korean text into natural, accurate English."
-    user: |
-      Translate the following Korean text into English.
-      Output only the English translation, without any explanation, notes, or quotation marks.
-
-      {source}
-  mlflow_experiment: "llm-translator"
-  evaluation:
-    use_comet: true
-
-  lora:
-    base_model: "Qwen/Qwen3-1.7B"
-    train_size: 20000   # null이면 train split 전체 (32만 쌍)
-    valid_size: 500 # 학습 중 eval loss용
-    max_seq_length: 2048 # 프롬프트 + 번역문 토큰 수 상한 (넘는 예시는 제외)
-    output_dir: "checkpoints/qwen3-1.7b-lora"
-    r: 16
-    alpha: 32
-    dropout: 0.05
-    target_modules: "all-linear"
-    learning_rate: 2.0e-4
-    num_train_epochs: 1
-    per_device_train_batch_size: 2
-    gradient_accumulation_steps: 8 # 실효 배치 16
-    warmup_ratio: 0.03
-    logging_steps: 10
-    eval_steps: 200
-    save_steps: 200
-    max_steps: -1 # 스모크 테스트 때만 양수 (설정하면 epoch보다 우선)
-
-  vllm:
-      dtype: "bfloat16"
-      max_model_len: 4096 # 프롬프트 + 번역문 최대 길이
-      gpu_memory_utilization: 0.95 # vLLM이 미리 잡아둘 GPU 메모리 비율
-      enable_prefix_caching: false # KV 캐싱 ON/OFF용 (캐시 재사용으로 인해 latency 측정이 왜곡되지 않도록)
-
-  generation:
-    temperature: 0.0
-    max_tokens: 1024
-    enable_thinking: false
-
-  
 serving:
   checkpoint_path: "checkpoints/best_weights.pt"
   registered_model_name: "rnn-translator"
@@ -174,4 +39,111 @@ serving:
     adapter_dir: "checkpoints/final_lora"
     registered_model_name: "qwen3-1.7b-lora-translator"
     max_new_token: 1024
-    
+
+
+model:
+  seq2seq:
+    kor_tokenizer: "klue/bert-base"
+    en_tokenizer: "google-bert/bert-base-uncased"
+    train: 
+      h_param:
+        embedding_lr: 1.0e-5
+        rnn_attn_fc_lr: 1.0e-3
+        epochs: 1 # 40
+        embedding_dim: 768 # kor-tokenizer의 임베딩 차원에 맞춰서
+        hidden_dim: 768
+        init_scheme: "Orthogonal_Xavier" # default / Orthogonal_Xavier
+        use_layer_norm: False
+        grad_clip_max_norm: 5.0
+        batch_size: 32
+        max_length: 400
+        max_new_token: 400
+        valid_bleu_sample_size: 100 # 2000
+      early_stopping:
+        patience: 3 # valid loss가 이 횟수만큼 연속으로 개선되지 않을경우, early stopping
+        min_delta: 0.005
+      model_architecture: "Seq2Seq-with-GRU"
+    inference:
+      max_length: 400
+      max_new_token: 400
+      batch_size: 1
+      checkpoint_path: "checkpoints/best_weights.pt"
+      decoding_strategy: beam # greedy / beam / hybrid
+      source_run_id: "" # 직접 지정해서 돌릴 경우에만 사용
+      sample_size: 1000 # null일 경우 test셋 전체
+      beam:
+        beam_size: 4
+        alpha: 0.6
+      hybrid:
+        temperature: 0.8
+        top_k: 50
+        top_p: 0.9
+
+  mini_transformer:
+    model_name: "checkpoints/opus-mt-ko-en-ft/final" # MarianMT, 약 7,700만 파라미터 (RNN과 비슷한 크기)
+    sample_size: 1000 # null일 경우 test셋 전체
+    batch_size: 1
+    max_length: 512 # 입력 토큰 상한 (모델의 위치 임베딩 한계)
+    max_new_tokens: 512 # RNN inference.max_new_token과 동일 (문장 단위 번역이면 문장당 상한)
+    split_sentences: false # 문장 단위로 나눠 번역 후 이어 붙임 (문장 단위로 학습된 모델이라 문단을 통째로 넣으면 앞부분만 번역함)
+    decoding_strategy: beam # greedy / beam
+    beam:
+      num_beams: 4 # RNN beam_size와 동일
+    mlflow_experiment: "mini-transformer-translator"
+    finetune:
+      base_model: "Helsinki-NLP/opus-mt-ko-en"
+      train_size: 20000 # LoRA와 같은 샘플링 → 같은 2만 쌍
+      valid_size: 500
+      max_length: 512 # 모델 구조상 한계. 넘는 쌍은 자르지 않고 제외
+      output_dir: "checkpoints/opus-mt-ko-en-ft"
+      learning_rate: 5.0e-5 # 소수점 필수 (PyYAML은 5e-5를 문자열로 읽음)
+      num_train_epochs: 10
+      per_device_train_batch_size: 8
+      gradient_accumulation_steps: 2 # 실효 배치 16 (LoRA와 동일)
+      warmup_ratio: 0.03
+      logging_steps: 50
+      eval_steps: 250
+      save_steps: 250 # eval_steps와 같아야 가장 좋은 체크포인트를 고를 수 있음
+      max_steps: -1 # 시험 학습 때만 양수
+
+  llm:
+    base_model: "Qwen/Qwen3-1.7B"
+    prompt:
+      version: "v1" # MLflow에 기록될 짧은 이름
+      system: "You are a professional translator. Translate Korean text into natural, accurate English."
+      user: |
+        Translate the following Korean text into English.
+        Output only the English translation, without any explanation, notes, or quotation marks.
+        {source}
+    mlflow_experiment: "llm-translator"
+    train:
+      method: "lora" # lora | full
+      train_size: 20000   # null이면 train split 전체
+      valid_size: 500 # 학습 중 eval loss용
+      max_seq_length: 2048 # 프롬프트 + 번역문 토큰 수 상한 (넘는 예시는 제외)
+      output_dir: "checkpoints/qwen3-1.7b-lora"
+      learning_rate: 2.0e-4
+      num_train_epochs: 1
+      per_device_train_batch_size: 2
+      gradient_accumulation_steps: 8 # 실효 배치 16
+      warmup_ratio: 0.03
+      logging_steps: 10
+      eval_steps: 200
+      save_steps: 200
+      max_steps: -1 # 스모크 테스트 때만 양수 (설정하면 epoch보다 우선)
+      lora:
+        r: 16
+        alpha: 32
+        dropout: 0.05
+        target_modules: "all-linear"
+    inference:
+      checkpoint: null # null(null일 경우 zero-shot(base모델 그대로)) | 가중치 경로
+      vllm:
+        dtype: "bfloat16"
+        max_model_len: 4096 # 프롬프트 + 번역문 최대 길이
+        gpu_memory_utilization: 0.95 # vLLM이 미리 잡아둘 GPU 메모리 비율
+        enable_prefix_caching: false # KV 캐싱 ON/OFF용 (캐시 재사용으로 인해 latency 측정이 왜곡되지 않도록)
+      generation:
+        temperature: 0.0
+        max_tokens: 1024
+        enable_thinking: false

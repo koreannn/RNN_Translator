@@ -113,7 +113,7 @@ def evaluate_by_length(records, bins, latency_warmup = 5) -> dict:
 
 
 def flatten_length_metrics(breakdown) -> dict:
-    # MLflow·wandb 기록용: "test_chrf/len_201-300" 형태 → UI에서 같은 지표의 구간들이 한 그룹으로 묶임
+    # MLflow 기록용: "test_chrf/len_201-300" 형태 → UI에서 같은 지표의 구간들이 한 그룹으로 묶임
     quality = {"bleu", "chrf", "comet"} # 전체 지표와 같은 test_ 접두사
     return {
         f"{'test_' + name if name in quality else name}/len_{label}": value

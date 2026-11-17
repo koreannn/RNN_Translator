@@ -104,7 +104,7 @@ if __name__ == "__main__":
     logger.info(f"# of model param: {param_stats['num_params']:,}")
 
     examples = get_eval_examples(config, mt_cfg["sample_size"])
-    use_comet = mt_cfg.get("evaluation", {}).get("use_comet", False)
+    use_comet = config["evaluation"].get("use_comet", False)
     length_bins = get_length_bins(config) # 원문 길이 구간 경계 (RNN·LLM 평가와 공유)
 
     reset_peak_vram(device)
