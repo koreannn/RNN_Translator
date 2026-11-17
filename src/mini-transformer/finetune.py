@@ -12,20 +12,14 @@ from transformers import (
 )
 
 from src.common.utils import load_config, set_seed
-from src.common.splits import load_splits
-
-
-def _sample(split, size, seed): # LoRA(src/llm/sft_data.py)와 같은 샘플링 → 같은 2만 쌍
-    if size is None or size >= len(split):
-        return split
-    return split.shuffle(seed = seed).select(range(size))
+from src.data_pipeline.loader import load_splits, sample # LoRA(src/llm/sft_data.py)와 같은 샘플링 → 같은 학습 쌍
 
 
 def tokenize_and_filter(split, tokenizer, max_length):
     # 원문 → input_ids, 정답 → labels. 길이를 넘는 쌍은 자르지 않고 제외
     # (잘라서 학습하면 번역을 중간에 끊거나 입력에 없는 내용을 지어내는 법을 배움)
     def tokenize(batch):
-        return tokenizer(batch["korean"], text_target = batch["english"], truncation = False)
+        return tokenizer(batch["source"], text_target = batch["target"], truncation = False)
 
     tokenized = split.map(tokenize, batched = True, remove_columns = split.column_names)
     before = len(tokenized)
@@ -44,9 +38,9 @@ if __name__ == "__main__":
     tokenizer = AutoTokenizer.from_pretrained(base_model)
     model = AutoModelForSeq2SeqLM.from_pretrained(base_model)
 
-    splits = load_splits(config["data"], config["seed"])
-    train_dataset = tokenize_and_filter(_sample(splits["train"], ft_cfg["train_size"], config["seed"]), tokenizer, ft_cfg["max_length"])
-    valid_dataset = tokenize_and_filter(_sample(splits["valid"], ft_cfg["valid_size"], config["seed"]), tokenizer, ft_cfg["max_length"])
+    splits = load_splits(config)
+    train_dataset = tokenize_and_filter(sample(splits["train"], ft_cfg["train_size"], config["seed"]), tokenizer, ft_cfg["max_length"])
+    valid_dataset = tokenize_and_filter(sample(splits["valid"], ft_cfg["valid_size"], config["seed"]), tokenizer, ft_cfg["max_length"])
 
     args = Seq2SeqTrainingArguments(
         output_dir = ft_cfg["output_dir"],

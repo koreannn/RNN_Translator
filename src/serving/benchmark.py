@@ -12,7 +12,7 @@ import requests
 from loguru import logger
 
 from src.common.utils import load_config
-from src.common.splits import load_splits, get_test_examples
+from src.data_pipeline.loader import get_eval_examples
 
 UNIT_MB = {"B": 1 / 1024 ** 2, "kB": 1 / 1024, "KiB": 1 / 1024, "MB": 1, "MiB": 1, "GB": 1024, "GiB": 1024}
 
@@ -59,14 +59,14 @@ if __name__ == "__main__":
     parser.add_argument("--threads", type = int, required = True) # 컨테이너에 준 OMP_NUM_THREADS (기록용)
     parser.add_argument("--container", default = "rnn-bench")
     parser.add_argument("--concurrency", type = int, default = 8) # 동시 요청 수 (프로세스 수보다 넉넉하게)
-    parser.add_argument("--num-requests", type = int, default = 50) # test 앞 N문단
+    parser.add_argument("--num-requests", type = int, default = 50) # evaluation.test_set에서 seed 고정 무작위 N문장
     parser.add_argument("--warmup", type = int, default = 5)
     parser.add_argument("--decoding", default = "greedy")
     args = parser.parse_args()
 
     config = load_config("config/config.yaml")
     api_url = config["serving"]["api_url"]
-    examples = get_test_examples(load_splits(config["data"], config["seed"]), args.num_requests)
+    examples = get_eval_examples(config, args.num_requests)
     texts = [e["source"] for e in examples]
 
     for text in texts[: args.warmup]: # 첫 요청은 느리므로 측정에서 제외

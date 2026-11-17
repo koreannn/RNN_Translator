@@ -1,7 +1,7 @@
 import pandas as pd
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split, ConcatDataset
-from src.common.splits import load_splits, get_eval_examples
+from src.data_pipeline.loader import load_splits, get_eval_examples
 
 
 class TranslationDataset(Dataset):
@@ -13,7 +13,7 @@ class TranslationDataset(Dataset):
     
     def __getitem__(self, idx):
         sample = self.data[idx]
-        return sample["korean"], sample["english"] # "lemon-mint/korean_english_parallel_wiki_augmented_v1" 데이터셋의 스키마
+        return sample["source"], sample["target"] # data_pipeline.loader가 방향에 맞춰 바꿔 둔 컬럼명
 
 
 class CustomDataLoader:
@@ -22,11 +22,11 @@ class CustomDataLoader:
                 max_length, batch_size, config,
             ):
         self.config = config
-        splits = load_splits(config["data"], config["seed"]) # LLM 추론과 같은 split을 쓰도록 공통 함수 사용
+        splits = load_splits(config) # LLM 추론과 같은 split을 쓰도록 공통 함수 사용
 
         self.train_data = TranslationDataset(splits["train"])
         self.valid_data = TranslationDataset(splits["valid"])
-        self.test_data = TranslationDataset([{"korean": e["source"], "english": e["reference"]} for e in get_eval_examples(self.config)])
+        self.test_data = TranslationDataset([{"source": e["source"], "target": e["reference"]} for e in get_eval_examples(self.config)])
         
         
         self.kor_tokenizer = kor_tokenizer

@@ -7,7 +7,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, TrainerCallback
 from trl import SFTConfig, SFTTrainer
 
 from src.common.utils import load_config, set_seed
-from src.common.splits import load_splits
+from src.data_pipeline.loader import load_splits
 from src.llm.sft_data import build_sft_datasets
 
 
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     run_tag = f"{base_model.split('/')[-1].lower()}-lora" # 예: qwen3-1.7b-lora
 
     tokenizer = AutoTokenizer.from_pretrained(base_model)
-    train_dataset, valid_dataset = build_sft_datasets(load_splits(config["data"], config["seed"]), tokenizer, llm_cfg, config["seed"])
+    train_dataset, valid_dataset = build_sft_datasets(load_splits(config), tokenizer, llm_cfg, config["seed"])
     model = AutoModelForCausalLM.from_pretrained(base_model, torch_dtype = torch.bfloat16)
 
     peft_config = LoraConfig(

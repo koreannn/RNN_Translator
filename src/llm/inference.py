@@ -10,7 +10,7 @@ from vllm import LLM, SamplingParams, __version__ as vllm_version
 from loguru import logger
 
 from src.common.utils import load_config, set_seed
-from src.common.splits import get_eval_examples
+from src.data_pipeline.loader import get_eval_examples
 from src.llm.prompt import build_prompt
 from src.llm.postprocess import clean_translation
 from src.evaluation.metrics import evaluate, save_predictions, get_length_bins, evaluate_by_length, flatten_length_metrics, format_length_breakdown
