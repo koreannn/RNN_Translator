@@ -5,11 +5,11 @@ from src.data_pipeline.loader import sample
 from src.llm.prompt import build_prompt
 
 
-def to_prompt_completion(split, tokenizer, llm_cfg):
+def to_prompt_completion(split, tokenizer, llm_cfg, direction):
     # prompt: zero-shot 추론과 같은 입력(build_prompt), completion: 정답 번역 + 종료 토큰
     eos = tokenizer.eos_token # Qwen3: <|im_end|> → 번역이 끝나면 멈추는 법을 학습
     return Dataset.from_list([
-        {"prompt": build_prompt(ex["source"], tokenizer, llm_cfg), "completion": ex["target"] + eos}
+        {"prompt": build_prompt(ex["source"], tokenizer, llm_cfg, direction), "completion": ex["target"] + eos}
         for ex in split
     ])
 
@@ -25,10 +25,11 @@ def filter_by_length(dataset, tokenizer, max_seq_length):
     return dataset
 
 
-def build_sft_datasets(splits, tokenizer, llm_cfg, seed): # RNN과 같은 split에서 샘플링 (test는 사용하지 않음)
+def build_sft_datasets(splits, tokenizer, llm_cfg, seed, direction): # RNN과 같은 split에서 샘플링 (test는 사용하지 않음)
+    # direction: ("Korean", "English") 등. splits의 source/target과 같은 방향이어야 함 (둘 다 config의 data.direction에서 옴)
     lora_cfg = llm_cfg["lora"]
     datasets = {}
     for name, size in (("train", lora_cfg["train_size"]), ("valid", lora_cfg["valid_size"])):
         sampled = sample(splits[name], size, seed)
-        datasets[name] = filter_by_length(to_prompt_completion(sampled, tokenizer, llm_cfg), tokenizer, lora_cfg["max_seq_length"])
+        datasets[name] = filter_by_length(to_prompt_completion(sampled, tokenizer, llm_cfg, direction), tokenizer, lora_cfg["max_seq_length"])
     return datasets["train"], datasets["valid"]

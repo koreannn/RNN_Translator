@@ -9,7 +9,7 @@ from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
 from src.common.utils import load_config, resolve_device, set_seed
 from src.data_pipeline.loader import get_eval_examples
-from src.evaluation.metrics import evaluate, save_predictions, get_length_bins, evaluate_by_length, flatten_length_metrics, format_length_breakdown
+from src.evaluation.metrics import evaluate, save_predictions, get_length_bins, get_target_lang, evaluate_by_length, flatten_length_metrics, format_length_breakdown
 from src.evaluation.efficiency import count_parameters, reset_peak_vram, get_peak_vram_mb, measure_ms, summarize_latency
 
 
@@ -119,14 +119,14 @@ if __name__ == "__main__":
     throughput = len(records) / elapsed # 초당 문장 처리 수
     logger.info(f"Latency p50 = {latency_stats['latency_p50_ms']:.1f} ms, p95 = {latency_stats['latency_p95_ms']:.1f} ms, throughput = {throughput:.2f} 문장/초")
 
-    metrics = evaluate(records, use_comet = use_comet) # use_comet이면 records에 문장별 COMET 점수도 추가됨
+    metrics = evaluate(records, get_target_lang(config), use_comet = use_comet) # use_comet이면 records에 문장별 COMET 점수도 추가됨
     truncated_rate = sum(r["finish_reason"] == "length" for r in records) / len(records)
     source_truncated_rate = sum(r["source_truncated"] for r in records) / len(records)
     logger.info(
         f"Test 평가 결과({run_tag}): " + ", ".join(f"{k} = {v:.4f}" for k, v in metrics.items())
         + f", 출력 잘림 비율 = {truncated_rate:.1%}, 입력 잘림 비율 = {source_truncated_rate:.1%}"
     )
-    length_breakdown = evaluate_by_length(records, length_bins)
+    length_breakdown = evaluate_by_length(records, length_bins, get_target_lang(config))
     logger.info(format_length_breakdown(length_breakdown))
 
     predictions_path = f"outputs/predictions/{run_tag}.jsonl"

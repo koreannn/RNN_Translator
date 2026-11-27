@@ -29,7 +29,8 @@ if __name__ == "__main__":
     run_tag = f"{base_model.split('/')[-1].lower()}-lora" # 예: qwen3-1.7b-lora
 
     tokenizer = AutoTokenizer.from_pretrained(base_model)
-    train_dataset, valid_dataset = build_sft_datasets(load_splits(config), tokenizer, llm_cfg, config["seed"])
+    direction = llm_cfg["languages"][config["data"]["direction"]] # load_splits와 같은 방향으로 프롬프트 생성
+    train_dataset, valid_dataset = build_sft_datasets(load_splits(config), tokenizer, llm_cfg, config["seed"], direction)
     model = AutoModelForCausalLM.from_pretrained(base_model, torch_dtype = torch.bfloat16)
 
     peft_config = LoraConfig(

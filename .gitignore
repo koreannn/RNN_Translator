@@ -37,3 +37,6 @@ config/config.yaml
 # postman 개인 설정
 .postman/
 postman/globals/
+
+# understand-anything 지식 그래프 (로컬 생성물)
+.ua/

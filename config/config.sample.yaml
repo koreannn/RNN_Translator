@@ -109,13 +109,17 @@ model:
   llm:
     base_model: "Qwen/Qwen3-1.7B"
     prompt:
-      version: "v1" # MLflow에 기록될 짧은 이름
-      system: "You are a professional translator. Translate Korean text into natural, accurate English."
+      version: "v3" # MLflow에 기록될 짧은 이름
+      system: "You are a professional translator for customer support chats. Translate {src_lang} text into natural, accurate {tgt_lang}."
       user: |
-        Translate the following Korean text into English.
-        Output only the English translation, without any explanation, notes, or quotation marks.
+        Translate the following {src_lang} text into {tgt_lang}.
+        Output only the {tgt_lang} translation, without any explanation, notes, or quotation marks.
+
         {source}
     mlflow_experiment: "llm-translator"
+    languages:
+      ko2en: ["Korean", "English"]
+      en2ko: ["English", "Korean"]
     train:
       method: "lora" # lora | full
       train_size: 20000   # null이면 train split 전체
@@ -138,6 +142,7 @@ model:
         target_modules: "all-linear"
     inference:
       checkpoint: null # null(null일 경우 zero-shot(base모델 그대로)) | 가중치 경로
+      measure_latency: true # test 전체를 한 건씩 생성해 지연 측정 (품질만 빠르게 볼 때는 false)
       vllm:
         dtype: "bfloat16"
         max_model_len: 4096 # 프롬프트 + 번역문 최대 길이

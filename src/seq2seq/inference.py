@@ -10,7 +10,7 @@ from transformers import AutoTokenizer
 from src.seq2seq.model import build_model
 from src.common.utils import load_config, resolve_device, set_seed
 from src.seq2seq.decoding import get_special_token_ids, greedy_decoding, beam_decoding, sampling_decoding
-from src.evaluation.metrics import evaluate, save_predictions, get_length_bins, evaluate_by_length, flatten_length_metrics, format_length_breakdown
+from src.evaluation.metrics import evaluate, save_predictions, get_length_bins, get_target_lang, evaluate_by_length, flatten_length_metrics, format_length_breakdown
 from src.evaluation.efficiency import count_parameters, reset_peak_vram, get_peak_vram_mb, measure_ms, summarize_latency
 from src.seq2seq.dataloader import CustomDataLoader
 
@@ -224,9 +224,9 @@ if __name__ == "__main__":
     throughput = len(records) / elapsed # 초당 문장 처리 수
     logger.info(f"Latency p50 = {latency_stats['latency_p50_ms']:.1f} ms, p95 = {latency_stats['latency_p95_ms']:.1f} ms, throughput = {throughput:.2f} 문장/초")
 
-    metrics = evaluate(records, use_comet = use_comet) # use_comet이면 records에 문장별 COMET 점수도 추가됨
+    metrics = evaluate(records, get_target_lang(config), use_comet = use_comet) # use_comet이면 records에 문장별 COMET 점수도 추가됨
     logger.info(f"Test 평가 결과({strategy}): " + ", ".join(f"{k} = {v:.4f}" for k, v in metrics.items()))
-    length_breakdown = evaluate_by_length(records, length_bins)
+    length_breakdown = evaluate_by_length(records, length_bins, get_target_lang(config))
     logger.info(format_length_breakdown(length_breakdown))
 
     predictions_path = f"outputs/predictions/{Path(model_checkpoint_path).stem}-{strategy}{suffix}.jsonl"

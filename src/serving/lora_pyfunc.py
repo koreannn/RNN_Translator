@@ -29,6 +29,9 @@ class LoRATranslator(mlflow.pyfunc.PythonModel):
             "prompt": self.cfg["prompt"],
             "generation": {"enable_thinking": self.cfg["enable_thinking"]},
         }
+        # 이미 등록된 모델(위키 한→영 LoRA)은 model_config에 direction이 없음 → 한→영으로 둠
+        # (옛 프롬프트는 {source}만 있어 src_lang/tgt_lang 인자는 무시됨)
+        self.direction = tuple(self.cfg.get("direction", ("Korean", "English")))
 
         self.tokenizer = AutoTokenizer.from_pretrained(adapter_dir)
         base = AutoModelForCausalLM.from_pretrained(
@@ -42,7 +45,7 @@ class LoRATranslator(mlflow.pyfunc.PythonModel):
         self.model.eval() # dropout 끄기
 
     def _translate(self, text):
-        prompt = build_prompt(text, self.tokenizer, self.llm_cfg)
+        prompt = build_prompt(text, self.tokenizer, self.llm_cfg, self.direction)
         inputs = self.tokenizer(prompt, return_tensors = "pt").to(self.device)
         output_ids = self.model.generate(
             **inputs,

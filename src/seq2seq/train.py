@@ -187,7 +187,7 @@ def train(
                     break
 
         valid_avg_loss = valid_loss_sum / max(1, valid_steps)
-        valid_bleu = compute_bleu(all_yhat, all_ground_truth)
+        valid_bleu = compute_bleu(all_yhat, all_ground_truth, "en") # seq2seq는 영어 토크나이저로 디코딩하는 한→영 고정 모델
 
         samples = "\n\n".join(
             f"[REF] {ref}\n[HYP] {hyp}"

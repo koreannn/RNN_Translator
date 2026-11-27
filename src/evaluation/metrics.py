@@ -4,18 +4,37 @@ import bisect
 import sacrebleu
 import torch
 import functools
+import collections
+import re
 import numpy as np
 
 from sacrebleu.metrics import CHRF
 from loguru import logger
 from pathlib import Path
 
+from src.data_pipeline.pipeline import length_bucket
+
 COMET_MODEL_NAME = "Unbabel/wmt22-comet-da"
 DEFAULT_LENGTH_BINS = [50, 200, 300, 400] # config에 evaluation.length_bins가 없을 때 사용하는 원문 길이 구간 경계
+SLICES = {
+    "subdomain": lambda r: r["subdomain"],
+    "length": lambda r: length_bucket(r["en_words"]),
+    "has_number": lambda r: r["has_number"],
+    "has_negation": lambda r: r["has_negation"],
+    "has_condition": lambda r: r["has_condition"],
+}
 
-def compute_bleu(hypotheses, references):
+def bleu_tokenize(target_lang): # 번역문 언어 → sacrebleu 토큰화 (MLflow에도 같은 값을 기록)
+    return "char" if target_lang == "ko" else "13a"
+
+
+def get_target_lang(config): # data.direction("ko2en" | "en2ko") → 번역문 언어("en" | "ko")
+    return config["data"]["direction"].split("2")[1]
+
+
+def compute_bleu(hypotheses, references, target_lang):
     # valid(train)/test(inference) 공통 BLEU 기준: 정답은 원문 텍스트, 대소문자 무시 (en_tokenizer가 uncased이므로)
-    return sacrebleu.corpus_bleu(hypotheses, [references], lowercase = True).score
+    return sacrebleu.corpus_bleu(hypotheses, [references], lowercase = True, tokenize = bleu_tokenize(target_lang)).score
 
 
 def compute_chrf(hypotheses, references):
@@ -37,13 +56,13 @@ def compute_comet(sources, hypotheses, references, batch_size = 32):
     return output.system_score, output.scores # 전체 점수(0~1), 문장별 점수
 
 
-def evaluate(records, use_comet = False) -> dict: # 모델 종류와 무관하게 records(jsonl)만 보고 평가
+def evaluate(records, target_lang, use_comet = False) -> dict: # 모델 종류와 무관하게 records(jsonl)만 보고 평가
     sources = [r["source"] for r in records]
     hypotheses = [r["hypothesis"] for r in records]
     references = [r["reference"] for r in records]
 
     metrics = {
-        "bleu": compute_bleu(hypotheses, references),
+        "bleu": compute_bleu(hypotheses, references, target_lang),
         "chrf": compute_chrf(hypotheses, references),
     }
     if use_comet:
@@ -74,7 +93,7 @@ def _length_labels(bins): # [50, 200] → ["0-50", "51-200", "201-inf"] (MLflow 
     return [f"{low}-{high}" for low, high in zip(lows, highs)]
 
 
-def evaluate_by_length(records, bins, latency_warmup = 5) -> dict:
+def evaluate_by_length(records, bins, target_lang, latency_warmup = 5) -> dict:
     # 원문 길이 구간별 지표. records(jsonl)만 보고 계산하므로 RNN·LLM 공통이고, 저장된 jsonl로 사후 계산도 가능
     # 구간 경계를 바꾸면 구간 이름(=metric 이름)도 바뀌어, 서로 다른 구간을 같은 지표로 착각해 비교하는 일을 막음
     labels = _length_labels(bins)
@@ -95,7 +114,38 @@ def evaluate_by_length(records, bins, latency_warmup = 5) -> dict:
 
         hypotheses = [r["hypothesis"] for r in group]
         references = [r["reference"] for r in group]
-        stats["bleu"] = compute_bleu(hypotheses, references)
+        stats["bleu"] = compute_bleu(hypotheses, references, target_lang)
+        stats["chrf"] = compute_chrf(hypotheses, references)
+        if all("comet" in r for r in group): # evaluate(use_comet = True)가 넣어둔 문장별 점수의 평균
+            stats["comet"] = float(np.mean([r["comet"] for r in group]))
+
+        latencies = [r["latency_ms"] for r in group if r.get("latency_ms") is not None and r["id"] not in warmup_ids]
+        if latencies:
+            stats["latency_p50_ms"] = float(np.percentile(latencies, 50))
+        if "finish_reason" in group[0]: # LLM: max_tokens에서 잘린 비율 (반복 루프 등)
+            stats["truncated_rate"] = sum(r["finish_reason"] == "length" for r in group) / len(group)
+        if "source_truncated" in group[0]: # RNN: 입력이 max_length에서 잘린 비율
+            stats["source_truncated_rate"] = sum(r["source_truncated"] for r in group) / len(group)
+
+        breakdown[label] = stats
+    return breakdown
+
+
+def evaluate_by_slice(records, key_fn, target_lang, latency_warmup = 5) -> dict:
+    groups = collections.defaultdict(list)
+    for r in records:
+        groups[key_fn(r)].append(r)
+    
+    timed = [r for r in records if r.get("latency_ms") is not None]
+    warmup_ids = {r["id"] for r in timed[:latency_warmup]}
+    
+    # 구간별 지표
+    breakdown = {}
+    for label, group in sorted(groups.items()):
+        stats = {"num_sentences": len(group)}
+        hypotheses = [r["hypothesis"] for r in group]
+        references = [r["reference"] for r in group]
+        stats["bleu"] = compute_bleu(hypotheses, references, target_lang)
         stats["chrf"] = compute_chrf(hypotheses, references)
         if all("comet" in r for r in group): # evaluate(use_comet = True)가 넣어둔 문장별 점수의 평균
             stats["comet"] = float(np.mean([r["comet"] for r in group]))
@@ -120,6 +170,30 @@ def flatten_length_metrics(breakdown) -> dict:
         for label, stats in breakdown.items()
         for name, value in stats.items()
     }
+
+def flatten_slice_metrics(breakdowns:dict) -> dict:
+    quality = {"bleu", "chrf", "comet"} # 전체 지표와 같은 test_ 접두사
+    flat = {}
+    for slice_name, breakdown in breakdowns.items():
+        for label, stats in breakdown.items():
+            safe = re.sub(r"[^\w\-. ]", "_", str(label)) # MLflow 지표 이름에 못 쓰는 문자(쉼표 등)와 그룹 구분자 "/"를 "_"로. 한글은 \w에 포함돼 그대로 둠
+            for name, value in stats.items():
+                metric = f"test_{name}" if name in quality else name
+                key = f"{metric}/{slice_name}_{safe}"
+                if key in flat: # 서로 다른 구간 이름이 바꾼 뒤 같아지면 지표가 덮어써지므로 중단
+                    raise ValueError(f"구간 이름이 겹쳐 지표가 덮어써짐: {key} ({label})")
+                flat[key] = value
+    return flat
+
+
+def format_slice_breakdown(breakdowns) -> str: # 로그 출력용 표 (구간 이름은 원래 이름 그대로)
+    lines = ["구간별 지표:"]
+    for slice_name, breakdown in breakdowns.items():
+        lines.append(f"  <{slice_name}>")
+        for label, stats in breakdown.items():
+            values = ", ".join(f"{k} = {v:.4f}" if isinstance(v, float) else f"{k} = {v}" for k, v in stats.items())
+            lines.append(f"    [{label}] {values}")
+    return "\n".join(lines)
 
 
 def format_length_breakdown(breakdown) -> str: # 로그 출력용 표
@@ -148,27 +222,28 @@ def save_predictions(records, path):
 
 if __name__ == "__main__":
     # 저장된 예측 jsonl을 디코딩 없이 다시 평가 (구간 경계를 바꾸거나 데이터가 바뀌었을 때 과거 결과도 같은 기준으로 재계산)
-    # 사용법: python src/evaluation/metrics.py outputs/predictions/best-greedy.jsonl [...] [--no-comet] [--length-bins=50,200,300,400]
+    # 사용법: python src/evaluation/metrics.py outputs/predictions/best-greedy.jsonl [...] [--no-comet] [--length-bins=50,200,300,400] [--target-lang=en|ko]
     # 구간 경계는 --length-bins > config/config.yaml의 evaluation.length_bins > DEFAULT_LENGTH_BINS 순으로 사용
-    usage = "사용법: python src/evaluation/metrics.py <예측 jsonl 경로> [...] [--no-comet] [--length-bins=50,200,300,400]"
+    usage = "사용법: python src/evaluation/metrics.py <예측 jsonl 경로> [...] [--no-comet] [--length-bins=50,200,300,400] [--target-lang=en|ko]"
     use_comet = "--no-comet" not in sys.argv
     bins_arg = next((arg.split("=", 1)[1] for arg in sys.argv[1:] if arg.startswith("--length-bins=")), None)
     paths = [arg for arg in sys.argv[1:] if not arg.startswith("--")]
     if not paths:
         sys.exit(usage)
 
-    if bins_arg:
-        length_bins = [int(b) for b in bins_arg.split(",")]
-    else:
-        config_path = Path("config/config.yaml")
-        if config_path.exists():
-            import yaml
-            length_bins = get_length_bins(yaml.safe_load(config_path.read_text(encoding = "utf-8")) or {})
-        else:
-            length_bins = DEFAULT_LENGTH_BINS
+    lang_arg = next((arg.split("=", 1)[1] for arg in sys.argv[1:] if arg.startswith("--target-lang=")), None)
+    config_path = Path("config/config.yaml")
+    file_config = {}
+    if config_path.exists():
+        import yaml
+        file_config = yaml.safe_load(config_path.read_text(encoding = "utf-8")) or {}
+
+    length_bins = [int(b) for b in bins_arg.split(",")] if bins_arg else get_length_bins(file_config)
+    # 번역문 언어: --target-lang > config의 data.direction > "en"
+    target_lang = lang_arg or (get_target_lang(file_config) if "data" in file_config else "en")
 
     for path in paths:
         records = load_predictions(path)
-        metrics = evaluate(records, use_comet = use_comet)
-        print(f"{path} ({len(records)}문장): " + ", ".join(f"{k} = {v:.4f}" for k, v in metrics.items()))
-        print(format_length_breakdown(evaluate_by_length(records, length_bins)))
+        metrics = evaluate(records, target_lang, use_comet = use_comet)
+        print(f"{path} ({len(records)}문장, BLEU 토큰화 = {bleu_tokenize(target_lang)}): " + ", ".join(f"{k} = {v:.4f}" for k, v in metrics.items()))
+        print(format_length_breakdown(evaluate_by_length(records, length_bins, target_lang)))
